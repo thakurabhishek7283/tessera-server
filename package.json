@@ -1,0 +1,44 @@
+{
+  "name": "tessera-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Self-hostable realtime and storage backend for Tessera kits",
+  "license": "MIT",
+  "author": "Abhishek Thakur",
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "deps": "node scripts/fetch-deps.mjs",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "dependencies": {
+    "@tessera/protocol": "^0.1.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.0",
+    "@types/node": "^22.20.5",
+    "tsx": "^4.20.0",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@tessera/protocol": "link:./external/tessera/packages/protocol"
+    },
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "esbuild"
+    ]
+  }
+}

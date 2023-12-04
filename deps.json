@@ -1,0 +1,7 @@
+{
+  "tessera": {
+    "url": "https://github.com/thakurabhishek7283/tessera.git",
+    "ref": "v0.1.0",
+    "packages": ["protocol"]
+  }
+}
