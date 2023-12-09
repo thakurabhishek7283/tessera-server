@@ -22,7 +22,12 @@
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "@fastify/helmet": "^13.1.1",
     "@tessera/protocol": "^0.1.0",
+    "fastify": "^5.12.5",
+    "fastify-type-provider-zod": "^7.0.0",
+    "ulid": "^3.0.2",
     "zod": "^4.6.5"
   },
   "devDependencies": {
