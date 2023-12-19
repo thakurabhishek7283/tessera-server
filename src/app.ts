@@ -6,6 +6,7 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from 'fastify-type-provider-zod';
+import { type Db, openDatabase } from './db/client.js';
 import type { Env } from './env.js';
 import { AppError, toWireError } from './lib/errors.js';
 import { type Clock, createIds, type Ids, systemClock } from './lib/ids.js';
@@ -16,6 +17,7 @@ declare module 'fastify' {
     env: Env;
     ids: Ids;
     clock: Clock;
+    db: Db;
   }
 }
 
@@ -24,6 +26,8 @@ export interface BuildAppOptions {
   env: Env;
   ids?: Ids;
   clock?: Clock;
+  /** Use an already-open database instead of opening `env.databasePath`. */
+  db?: Db;
   /** Overrides the pino logger configuration derived from `env.logLevel`. */
   logger?: FastifyServerOptions['logger'];
 }
@@ -54,6 +58,11 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   app.decorate('env', env);
   app.decorate('ids', opts.ids ?? createIds());
   app.decorate('clock', opts.clock ?? systemClock);
+
+  const db = opts.db ?? openDatabase(env.databasePath);
+  app.decorate('db', db);
+  // Only close what this app opened; a caller-supplied database stays the caller's.
+  if (!opts.db) app.addHook('onClose', () => db.close());
 
   await app.register(helmet);
   await app.register(cors, {
