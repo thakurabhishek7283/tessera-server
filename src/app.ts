@@ -6,6 +6,9 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from 'fastify-type-provider-zod';
+import { guestRoutes } from './auth/guest.js';
+import { createVerifier, type TokenVerifier } from './auth/index.js';
+import { type Authorizer, createAuthorizer } from './auth/policy.js';
 import { type Db, openDatabase } from './db/client.js';
 import type { Env } from './env.js';
 import { AppError, toWireError } from './lib/errors.js';
@@ -18,6 +21,8 @@ declare module 'fastify' {
     ids: Ids;
     clock: Clock;
     db: Db;
+    verifier: TokenVerifier;
+    authorizer: Authorizer;
   }
 }
 
@@ -28,6 +33,10 @@ export interface BuildAppOptions {
   clock?: Clock;
   /** Use an already-open database instead of opening `env.databasePath`. */
   db?: Db;
+  /** Replaces the verifier chosen by `AUTH_MODE`; see `TokenVerifier`. */
+  verifier?: TokenVerifier;
+  /** Replaces the default access rules; see `Authorizer`. */
+  authorizer?: Authorizer;
   /** Overrides the pino logger configuration derived from `env.logLevel`. */
   logger?: FastifyServerOptions['logger'];
 }
@@ -63,6 +72,12 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   app.decorate('db', db);
   // Only close what this app opened; a caller-supplied database stays the caller's.
   if (!opts.db) app.addHook('onClose', () => db.close());
+
+  app.decorate(
+    'verifier',
+    opts.verifier ?? createVerifier(env, { clock: app.clock, ids: app.ids }),
+  );
+  app.decorate('authorizer', opts.authorizer ?? createAuthorizer(env, db));
 
   await app.register(helmet);
   await app.register(cors, {
@@ -105,6 +120,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   });
 
   await app.register(healthRoutes);
+  if (env.authMode === 'dev') await app.register(guestRoutes);
 
   return app;
 }
