@@ -35,6 +35,20 @@ export class AppError extends Error {
   }
 }
 
+/**
+ * Optimistic-concurrency failure. REST returns the server's copy next to the error
+ * (`ConflictBody`), which is where clients look for it.
+ */
+export class ConflictError extends AppError {
+  constructor(
+    message: string,
+    readonly current: unknown,
+  ) {
+    super('CONFLICT', message);
+    this.name = 'ConflictError';
+  }
+}
+
 /** HTTP status for an error code; anything unmapped is a 500. */
 export function httpStatus(code: ErrorCode): number {
   return HTTP_STATUS[code] ?? 500;
