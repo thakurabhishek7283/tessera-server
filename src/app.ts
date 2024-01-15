@@ -11,8 +11,11 @@ import { createVerifier, type TokenVerifier } from './auth/index.js';
 import { type Authorizer, createAuthorizer } from './auth/policy.js';
 import { type Db, openDatabase } from './db/client.js';
 import type { Env } from './env.js';
-import { AppError, toWireError } from './lib/errors.js';
+import { AppError, ConflictError, toWireError } from './lib/errors.js';
+import { AppEvents } from './lib/events.js';
 import { type Clock, createIds, type Ids, systemClock } from './lib/ids.js';
+import { parseQuery } from './lib/query.js';
+import { docsRoutes } from './modules/docs/routes.js';
 import { healthRoutes } from './modules/health/routes.js';
 
 declare module 'fastify' {
@@ -23,6 +26,7 @@ declare module 'fastify' {
     db: Db;
     verifier: TokenVerifier;
     authorizer: Authorizer;
+    events: AppEvents;
   }
 }
 
@@ -59,6 +63,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
     bodyLimit: 1024 * 1024,
     // Behind a reverse proxy the real client address is needed for rate limiting.
     trustProxy: true,
+    routerOptions: { querystringParser: (search) => parseQuery(search) as Record<string, string> },
   });
 
   app.setValidatorCompiler(validatorCompiler);
@@ -67,6 +72,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   app.decorate('env', env);
   app.decorate('ids', opts.ids ?? createIds());
   app.decorate('clock', opts.clock ?? systemClock);
+  app.decorate('events', new AppEvents());
 
   const db = opts.db ?? openDatabase(env.databasePath);
   app.decorate('db', db);
@@ -94,6 +100,9 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   });
 
   app.setErrorHandler((err, req, reply) => {
+    if (err instanceof ConflictError) {
+      return reply.code(409).send({ error: err.toWire(), current: err.current });
+    }
     if (err instanceof AppError) {
       return reply.code(err.status).send({ error: err.toWire() });
     }
@@ -120,6 +129,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   });
 
   await app.register(healthRoutes);
+  await app.register(docsRoutes);
   if (env.authMode === 'dev') await app.register(guestRoutes);
 
   return app;
