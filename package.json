@@ -25,6 +25,7 @@
   "dependencies": {
     "@fastify/cors": "^11.3.0",
     "@fastify/helmet": "^13.1.1",
+    "@fastify/rate-limit": "^11.2.0",
     "@tessera/protocol": "^0.1.0",
     "better-sqlite3": "^13.0.3",
     "drizzle-orm": "^0.45.3",

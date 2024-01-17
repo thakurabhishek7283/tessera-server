@@ -1,5 +1,6 @@
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import {
   hasZodFastifySchemaValidationErrors,
@@ -92,6 +93,9 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
     allowedHeaders: ['authorization', 'content-type', 'if-match'],
     exposedHeaders: ['etag'],
   });
+
+  // Per client IP; `/health` opts out so probes never get throttled.
+  await app.register(rateLimit, { max: env.rateLimitPerMinute, timeWindow: '1 minute' });
 
   app.setNotFoundHandler((req, reply) => {
     void reply

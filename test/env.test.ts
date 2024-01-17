@@ -9,6 +9,7 @@ describe('parseEnv', () => {
       host: '0.0.0.0',
       authMode: 'dev',
       callMaxParticipants: 6,
+      rateLimitPerMinute: 300,
       uploadMaxBytes: 5 * 1024 * 1024,
       turnTtlSeconds: 3600,
       stunUrls: ['stun:stun.l.google.com:19302'],

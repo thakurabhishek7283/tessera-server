@@ -31,6 +31,7 @@ const Schema = z
       .positive()
       .default(5 * 1024 * 1024),
     UPLOAD_ALLOWED: z.string().default('image/png,image/jpeg,image/webp,image/gif,application/pdf'),
+    RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(300),
     CALL_MAX_PARTICIPANTS: z.coerce.number().int().min(2).max(32).default(6),
     STUN_URLS: z.string().default('stun:stun.l.google.com:19302'),
     TURN_URLS: z.string().optional(),
@@ -84,6 +85,7 @@ export interface Env {
   uploadDir: string;
   uploadMaxBytes: number;
   uploadAllowed: string[];
+  rateLimitPerMinute: number;
   callMaxParticipants: number;
   stunUrls: string[];
   turnUrls: string[];
@@ -138,6 +140,7 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
     uploadDir: e.UPLOAD_DIR,
     uploadMaxBytes: e.UPLOAD_MAX_BYTES,
     uploadAllowed: list(e.UPLOAD_ALLOWED),
+    rateLimitPerMinute: e.RATE_LIMIT_PER_MINUTE,
     callMaxParticipants: e.CALL_MAX_PARTICIPANTS,
     stunUrls: list(e.STUN_URLS),
     turnUrls: list(e.TURN_URLS),

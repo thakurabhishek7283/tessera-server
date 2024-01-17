@@ -45,3 +45,25 @@ describe('GET /health', () => {
     expect(res.headers['x-content-type-options']).toBe('nosniff');
   });
 });
+
+describe('REST rate limiting', () => {
+  it('answers 429 with the error envelope once the per-minute budget is spent', async () => {
+    const app = await testApp({ RATE_LIMIT_PER_MINUTE: '3' });
+    const codes: number[] = [];
+    for (let i = 0; i < 5; i++) {
+      codes.push((await app.inject({ method: 'GET', url: '/v1/docs/a/b' })).statusCode);
+    }
+    expect(codes).toEqual([200, 200, 200, 429, 429]);
+    const limited = await app.inject({ method: 'GET', url: '/v1/docs/a/b' });
+    expect(limited.json()).toMatchObject({ error: { code: 'RATE_LIMITED' } });
+    await app.close();
+  });
+
+  it('never throttles /health', async () => {
+    const app = await testApp({ RATE_LIMIT_PER_MINUTE: '1' });
+    for (let i = 0; i < 5; i++) {
+      expect((await app.inject({ method: 'GET', url: '/health' })).statusCode).toBe(200);
+    }
+    await app.close();
+  });
+});
