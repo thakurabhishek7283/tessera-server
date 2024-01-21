@@ -12,6 +12,8 @@ import { createVerifier, type TokenVerifier } from './auth/index.js';
 import { type Authorizer, createAuthorizer } from './auth/policy.js';
 import { type Db, openDatabase } from './db/client.js';
 import type { Env } from './env.js';
+import type { HubOptions } from './hub/options.js';
+import { registerHub } from './hub/plugin.js';
 import { AppError, ConflictError, toWireError } from './lib/errors.js';
 import { AppEvents } from './lib/events.js';
 import { type Clock, createIds, type Ids, systemClock } from './lib/ids.js';
@@ -42,6 +44,8 @@ export interface BuildAppOptions {
   verifier?: TokenVerifier;
   /** Replaces the default access rules; see `Authorizer`. */
   authorizer?: Authorizer;
+  /** Overrides hub timings and limits (tests use short timeouts). */
+  hub?: Partial<HubOptions>;
   /** Overrides the pino logger configuration derived from `env.logLevel`. */
   logger?: FastifyServerOptions['logger'];
 }
@@ -132,6 +136,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
     return reply.code(500).send({ error: toWireError('UNKNOWN', 'Internal server error') });
   });
 
+  await registerHub(app, opts.hub);
   await app.register(healthRoutes);
   await app.register(docsRoutes);
   if (env.authMode === 'dev') await app.register(guestRoutes);

@@ -26,6 +26,7 @@
     "@fastify/cors": "^11.3.0",
     "@fastify/helmet": "^13.1.1",
     "@fastify/rate-limit": "^11.2.0",
+    "@fastify/websocket": "^11.3.2",
     "@tessera/protocol": "^0.1.0",
     "better-sqlite3": "^13.0.3",
     "drizzle-orm": "^0.45.3",
@@ -33,12 +34,14 @@
     "fastify-type-provider-zod": "^7.0.0",
     "jose": "^6.2.12",
     "ulid": "^3.0.2",
+    "ws": "^8.22.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.0",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^22.20.5",
+    "@types/ws": "^8.18.2",
     "drizzle-kit": "^0.31.11",
     "tsx": "^4.20.0",
     "typescript": "~6.0.3",
