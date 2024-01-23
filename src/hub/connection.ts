@@ -11,7 +11,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import type { RawData, WebSocket } from 'ws';
 import { type AuthUser, publicUser } from '../auth/index.js';
 import { AppError, toWireError } from '../lib/errors.js';
-import type { Hub } from './hub.js';
+import type { Hub, Presence } from './hub.js';
 
 type State = 'await-hello' | 'ready' | 'closed';
 
@@ -155,8 +155,34 @@ export class Connection {
           serverTime: this.hub.deps.clock.now().getTime(),
         });
         return;
+      case 'join':
+        this.onJoin(msg);
+        return;
+      case 'leave':
+        this.hub.leave(this, msg.room);
+        return;
+      case 'presence':
+        this.guard(undefined, () => this.hub.updatePresence(this, msg.room, msg.patch));
+        return;
       default:
         this.sendError(toWireError('NOT_FOUND', `Frame "${msg.t}" is not supported yet`));
+    }
+  }
+
+  private onJoin(msg: Extract<ClientMessage, { t: 'join' }>): void {
+    this.guard(msg.id, () => {
+      const peers = this.hub.join(this, msg.room, (msg.presence ?? {}) as Presence);
+      this.send({ t: 'joined', id: msg.id, room: msg.room, peers });
+    });
+  }
+
+  /** Runs a handler, turning thrown {@link AppError}s into `error` frames tied to `ref`. */
+  private guard(ref: string | undefined, fn: () => void): void {
+    try {
+      fn();
+    } catch (err) {
+      if (!(err instanceof AppError)) throw err;
+      this.sendError(err.toWire(), ref);
     }
   }
 

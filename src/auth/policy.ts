@@ -34,6 +34,8 @@ export function createAuthorizer(env: Env, db: Db): Authorizer {
   const canAccessApp: Authorizer['canAccessApp'] = (user, appId) =>
     user.apps === null || user.apps.includes(appId);
 
+  const canRead: Authorizer['canRead'] = (user, appId) => canAccessApp(user, appId);
+
   const isDirectMember = (userId: string, conversationId: string): boolean =>
     db.orm
       .select({ userId: conversationMembers.userId })
@@ -55,9 +57,11 @@ export function createAuthorizer(env: Env, db: Db): Authorizer {
       if (parsed.kind === 'chat' && parsed.id.startsWith('dm:')) {
         return isDirectMember(user.id, parsed.id);
       }
+      // Live document changes leak content, so they follow the collection's read rule.
+      if (parsed.kind === 'docs') return canRead(user, parsed.appId, parsed.id);
       return true;
     },
-    canRead: (user, appId) => canAccessApp(user, appId),
+    canRead,
     // Outside dev mode a token is mandatory, so "anonymous" can only happen in dev, where it's allowed.
     canWrite: (user, appId) =>
       canAccessApp(user, appId) && (env.authMode === 'dev' || !user.anonymous),

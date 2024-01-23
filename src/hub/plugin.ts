@@ -19,7 +19,13 @@ export async function registerHub(
   await app.register(websocket, { options: { maxPayload: MAX_FRAME_BYTES } });
 
   const hub = new Hub(
-    { verifier: app.verifier, authorizer: app.authorizer, ids: app.ids, clock: app.clock },
+    {
+      verifier: app.verifier,
+      authorizer: app.authorizer,
+      ids: app.ids,
+      clock: app.clock,
+      callMaxParticipants: app.env.callMaxParticipants,
+    },
     { ...DEFAULT_HUB_OPTIONS, ...overrides },
   );
   app.decorate('hub', hub);

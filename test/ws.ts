@@ -110,3 +110,8 @@ export async function connect(
   const welcome = await client.waitFor((m) => m.t === 'welcome');
   return Object.assign(client, { peerId: (welcome as { peerId: string }).peerId });
 }
+
+/** Closes every client; keeps tests free of `forEach` callbacks that return a value. */
+export function closeAll(...clients: WsClient[]): void {
+  for (const c of clients) c.close();
+}
