@@ -1,4 +1,5 @@
 import {
+  BroadcastSchemas,
   type JsonValue,
   MAX_PRESENCE_BYTES,
   type ServerMessage,
@@ -135,8 +136,7 @@ export class Hub {
 
   /** Shallow-merges a patch into the peer's presence and tells the rest of the room. */
   updatePresence(conn: Connection, name: string, patch: unknown): void {
-    const peer = this.rooms.get(name)?.peers.get(conn.peerId);
-    if (!peer) throw new AppError('FORBIDDEN', 'Join the room first', { reason: 'not-in-room' });
+    const peer = this.assertMember(conn, name).peers.get(conn.peerId) as HubPeer;
     assertPresence(patch);
     peer.presence = { ...peer.presence, ...patch };
     this.broker.publish(
@@ -144,6 +144,39 @@ export class Hub {
       { t: 'presence', room: name, peerId: conn.peerId, patch },
       conn.peerId,
     );
+  }
+
+  /** Relays a client's `pub` to everyone else in the room. */
+  publish(conn: Connection, name: string, topic: string, data: JsonValue): void {
+    this.assertMember(conn, name);
+    assertClientTopic(topic);
+    this.broker.publish(name, this.msg(name, topic, data, conn.peerId), conn.peerId);
+  }
+
+  /** Delivers a client's `direct` to one peer, which must share the room with the sender. */
+  direct(conn: Connection, name: string, to: string, topic: string, data: JsonValue): void {
+    const room = this.assertMember(conn, name);
+    assertClientTopic(topic);
+    const target = room.peers.get(to);
+    if (!target) throw new AppError('NOT_FOUND', 'No such peer in this room');
+    target.conn.send(this.msg(name, topic, data, conn.peerId));
+  }
+
+  /** Server-originated broadcast to a room (`from: 'server'`), e.g. `chat.message`. */
+  broadcast(name: string, topic: string, data: JsonValue): void {
+    this.broker.publish(name, this.msg(name, topic, data, 'server'));
+  }
+
+  private msg(room: string, topic: string, data: JsonValue, from: string): ServerMessage {
+    return { t: 'msg', room, topic, data, from, ts: this.deps.clock.now().getTime() };
+  }
+
+  private assertMember(conn: Connection, name: string): HubRoom {
+    const room = this.rooms.get(name);
+    if (!room?.peers.has(conn.peerId)) {
+      throw new AppError('FORBIDDEN', 'Join the room first', { reason: 'not-in-room' });
+    }
+    return room;
   }
 
   private openRoom(name: string, appId: string): HubRoom {
@@ -174,6 +207,15 @@ function toWirePeer(peer: HubPeer): WirePeer {
     user: publicUser(peer.conn.user as NonNullable<Connection['user']>),
     presence: peer.presence,
   };
+}
+
+/** Topics only the server may emit; letting clients publish them would allow forged messages. */
+function assertClientTopic(topic: string): void {
+  if (topic in BroadcastSchemas) {
+    throw new AppError('FORBIDDEN', `Topic "${topic}" is reserved for the server`, {
+      reason: 'reserved-topic',
+    });
+  }
 }
 
 /** Presence is a small JSON object; anything else is a client bug or an abuse attempt. */

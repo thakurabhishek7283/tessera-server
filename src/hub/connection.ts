@@ -164,6 +164,12 @@ export class Connection {
       case 'presence':
         this.guard(undefined, () => this.hub.updatePresence(this, msg.room, msg.patch));
         return;
+      case 'pub':
+        this.guard(undefined, () => this.hub.publish(this, msg.room, msg.topic, msg.data));
+        return;
+      case 'direct':
+        this.guard(undefined, () => this.hub.direct(this, msg.room, msg.to, msg.topic, msg.data));
+        return;
       default:
         this.sendError(toWireError('NOT_FOUND', `Frame "${msg.t}" is not supported yet`));
     }
