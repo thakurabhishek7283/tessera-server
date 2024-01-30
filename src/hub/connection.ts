@@ -3,6 +3,7 @@ import {
   CloseCode,
   decodeClientFrame,
   encodeFrame,
+  type JsonValue,
   MAX_FRAME_BYTES,
   type ServerMessage,
   type WireError,
@@ -164,14 +165,54 @@ export class Connection {
       case 'presence':
         this.guard(undefined, () => this.hub.updatePresence(this, msg.room, msg.patch));
         return;
+      case 'req':
+        // Not awaited: a slow handler must not hold up this connection's other frames.
+        void this.onRequest(msg);
+        return;
       case 'pub':
         this.guard(undefined, () => this.hub.publish(this, msg.room, msg.topic, msg.data));
         return;
       case 'direct':
         this.guard(undefined, () => this.hub.direct(this, msg.room, msg.to, msg.topic, msg.data));
         return;
-      default:
-        this.sendError(toWireError('NOT_FOUND', `Frame "${msg.t}" is not supported yet`));
+    }
+  }
+
+  private async onRequest(msg: Extract<ClientMessage, { t: 'req' }>): Promise<void> {
+    try {
+      if (!this.user || !this.hub.isMember(this, msg.room)) {
+        throw new AppError('FORBIDDEN', 'Join the room first', { reason: 'not-in-room' });
+      }
+      const { deps } = this.hub;
+      const data = await this.hub.handlers.handle(
+        msg.topic,
+        {
+          user: this.user,
+          peerId: this.peerId,
+          room: msg.room,
+          appId: this.appId,
+          hub: this.hub,
+          db: deps.db,
+          ids: deps.ids,
+          clock: deps.clock,
+          authorizer: deps.authorizer,
+          log: this.log,
+        },
+        msg.data,
+      );
+      this.send({ t: 'res', id: msg.id, ok: true, data: (data ?? null) as JsonValue });
+    } catch (err) {
+      if (err instanceof AppError) {
+        this.send({ t: 'res', id: msg.id, ok: false, error: err.toWire() });
+        return;
+      }
+      this.log.error({ err, topic: msg.topic, peerId: this.peerId }, 'request handler failed');
+      this.send({
+        t: 'res',
+        id: msg.id,
+        ok: false,
+        error: toWireError('UNKNOWN', 'Internal server error'),
+      });
     }
   }
 

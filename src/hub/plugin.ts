@@ -24,6 +24,7 @@ export async function registerHub(
       authorizer: app.authorizer,
       ids: app.ids,
       clock: app.clock,
+      db: app.db,
       callMaxParticipants: app.env.callMaxParticipants,
     },
     { ...DEFAULT_HUB_OPTIONS, ...overrides },

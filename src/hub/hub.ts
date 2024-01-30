@@ -9,12 +9,14 @@ import type { FastifyBaseLogger } from 'fastify';
 import type { WebSocket } from 'ws';
 import { type Authorizer, publicUser, type TokenVerifier } from '../auth/index.js';
 import { parseRoom } from '../auth/policy.js';
+import type { Db } from '../db/client.js';
 import { AppError } from '../lib/errors.js';
 import type { Unsubscribe } from '../lib/events.js';
 import type { Clock, Ids } from '../lib/ids.js';
 import { jsonBytes } from '../lib/json.js';
 import { type Broker, InMemoryBroker } from './broker.js';
 import { Connection } from './connection.js';
+import { HandlerRegistry } from './handlers.js';
 import type { HubOptions } from './options.js';
 
 export interface HubDeps {
@@ -22,6 +24,7 @@ export interface HubDeps {
   authorizer: Authorizer;
   ids: Ids;
   clock: Clock;
+  db: Db;
   broker?: Broker;
   callMaxParticipants: number;
 }
@@ -44,6 +47,8 @@ interface HubRoom {
 /** Owns every live connection and the rooms they join. */
 export class Hub {
   readonly broker: Broker;
+  /** Server-side `req` handlers; modules register theirs at boot. */
+  readonly handlers = new HandlerRegistry();
   private readonly connections = new Set<Connection>();
   private readonly rooms = new Map<string, HubRoom>();
 
@@ -169,6 +174,10 @@ export class Hub {
 
   private msg(room: string, topic: string, data: JsonValue, from: string): ServerMessage {
     return { t: 'msg', room, topic, data, from, ts: this.deps.clock.now().getTime() };
+  }
+
+  isMember(conn: Connection, name: string): boolean {
+    return this.rooms.get(name)?.peers.has(conn.peerId) ?? false;
   }
 
   private assertMember(conn: Connection, name: string): HubRoom {
