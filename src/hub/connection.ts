@@ -12,6 +12,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import type { RawData, WebSocket } from 'ws';
 import { type AuthUser, publicUser } from '../auth/index.js';
 import { AppError, toWireError } from '../lib/errors.js';
+import { TokenBucket } from '../lib/ratelimit.js';
 import type { Hub, Presence } from './hub.js';
 
 type State = 'await-hello' | 'ready' | 'closed';
@@ -34,19 +35,24 @@ export class Connection {
   private helloTimer: NodeJS.Timeout | undefined;
   private invalidFrames: number[] = [];
   private cleanedUp = false;
+  private heartbeat: NodeJS.Timeout | undefined;
+  private pongTimer: NodeJS.Timeout | undefined;
+  private readonly bucket: TokenBucket;
 
   constructor(
     private readonly socket: WebSocket,
     private readonly hub: Hub,
     private readonly log: FastifyBaseLogger,
   ) {
-    const { helloTimeoutMs } = hub.options;
+    const { helloTimeoutMs, bucketCapacity, bucketRefillPerSecond } = hub.options;
+    this.bucket = new TokenBucket(bucketCapacity, bucketRefillPerSecond);
     this.helloTimer = setTimeout(
       () => this.close(CloseCode.HelloTimeout, 'hello timeout'),
       helloTimeoutMs,
     );
 
     socket.on('message', (data, isBinary) => this.onMessage(data, isBinary));
+    socket.on('pong', () => this.onPong());
     socket.on('close', () => this.onClosed());
     socket.on('error', (err) => this.log.debug({ err }, 'socket error'));
   }
@@ -79,11 +85,30 @@ export class Connection {
       this.close(CloseCode.FrameTooLarge, 'frame too large');
       return;
     }
+    // Checked before queueing so a flood cannot build an unbounded backlog.
+    if (!this.bucket.take()) {
+      this.rejectRateLimited(raw);
+      return;
+    }
     this.queue = this.queue
       .then(() => this.handleRaw(raw))
       .catch((err: unknown) =>
         this.log.error({ err, peerId: this.peerId }, 'frame handler failed'),
       );
+  }
+
+  /** Tells the client its frame was dropped, in the shape it is waiting for. */
+  private rejectRateLimited(raw: string): void {
+    const error = toWireError('RATE_LIMITED', 'Too many frames; slow down');
+    let id: unknown;
+    let t: unknown;
+    try {
+      ({ t, id } = JSON.parse(raw) as { t?: unknown; id?: unknown });
+    } catch {
+      // Not JSON: nothing to correlate the error with.
+    }
+    if (typeof id === 'string' && t === 'req') this.send({ t: 'res', id, ok: false, error });
+    else this.sendError(error, typeof id === 'string' && t === 'join' ? id : undefined);
   }
 
   private async handleRaw(raw: string): Promise<void> {
@@ -135,6 +160,7 @@ export class Connection {
     this.appId = msg.appId;
     this.peerId = this.hub.deps.ids.peer();
     this.state = 'ready';
+    this.startHeartbeat();
     this.send({
       t: 'welcome',
       v: 1,
@@ -233,6 +259,24 @@ export class Connection {
     }
   }
 
+  /** Pings with ws control frames; a peer that stops answering is cut loose so its rooms clear. */
+  private startHeartbeat(): void {
+    const { heartbeatIntervalMs, pongTimeoutMs } = this.hub.options;
+    this.heartbeat = setInterval(() => {
+      if (this.pongTimer) return;
+      this.pongTimer = setTimeout(() => {
+        this.log.debug({ peerId: this.peerId }, 'heartbeat timeout');
+        this.socket.terminate();
+      }, pongTimeoutMs);
+      this.socket.ping();
+    }, heartbeatIntervalMs);
+  }
+
+  private onPong(): void {
+    clearTimeout(this.pongTimer);
+    this.pongTimer = undefined;
+  }
+
   /** Tolerates a few bad frames (clients have bugs) but not a stream of them. */
   private noteInvalidFrame(): void {
     const now = this.hub.deps.clock.now().getTime();
@@ -248,6 +292,8 @@ export class Connection {
     if (this.cleanedUp) return;
     this.cleanedUp = true;
     clearTimeout(this.helloTimer);
+    clearInterval(this.heartbeat);
+    clearTimeout(this.pongTimer);
     this.state = 'closed';
     this.hub.unregister(this);
   }

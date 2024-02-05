@@ -14,6 +14,7 @@ import { AppError } from '../lib/errors.js';
 import type { Unsubscribe } from '../lib/events.js';
 import type { Clock, Ids } from '../lib/ids.js';
 import { jsonBytes } from '../lib/json.js';
+import { KeyedRateLimiter } from '../lib/ratelimit.js';
 import { type Broker, InMemoryBroker } from './broker.js';
 import { Connection } from './connection.js';
 import { HandlerRegistry } from './handlers.js';
@@ -49,6 +50,8 @@ export class Hub {
   readonly broker: Broker;
   /** Server-side `req` handlers; modules register theirs at boot. */
   readonly handlers = new HandlerRegistry();
+  /** Per-user limits that span connections, e.g. `chat.send`. */
+  readonly limits = new KeyedRateLimiter();
   private readonly connections = new Set<Connection>();
   private readonly rooms = new Map<string, HubRoom>();
 

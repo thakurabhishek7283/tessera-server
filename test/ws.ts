@@ -43,8 +43,8 @@ export interface WsClient {
 }
 
 /** Opens a socket and records everything the server sends. */
-export async function wsClient(url: string): Promise<WsClient> {
-  const ws = new WebSocket(url);
+export async function wsClient(url: string, opts: { autoPong?: boolean } = {}): Promise<WsClient> {
+  const ws = new WebSocket(url, opts);
   const frames: ServerMessage[] = [];
   const waiters: Array<{
     pred: (m: ServerMessage) => boolean;
