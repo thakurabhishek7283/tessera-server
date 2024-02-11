@@ -1,11 +1,10 @@
 import { EventEmitter } from 'node:events';
-import type { DocChangedEvent } from '@tessera/protocol';
-import type { z } from 'zod';
 
 /** A committed change to a stored document. */
 export interface DocChange {
   appId: string;
-  event: z.infer<typeof DocChangedEvent>;
+  /** Shape of the `doc.changed` broadcast (`DocChangedEvent`). */
+  event: { collection: string; id: string; version: number; deleted?: boolean; by?: string };
 }
 
 /** Callback removal handle. */

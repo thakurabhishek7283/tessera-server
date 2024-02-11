@@ -4,7 +4,6 @@ import {
   DocParams,
   DocPutBody,
   PageDto,
-  RoomName,
   whereCandidates,
 } from '@tessera/protocol';
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
@@ -26,11 +25,6 @@ function ifMatch(req: FastifyRequest): number | undefined {
   const match = /^"?(\d+)"?$/.exec(header.trim());
   if (!match?.[1]) throw new AppError('VALIDATION', 'If-Match must be a document version');
   return Number(match[1]);
-}
-
-/** `<appId>/docs:<collection>` — the room subscribers watch for `doc.changed`. */
-export function docsRoom(appId: string, collection: string): string {
-  return RoomName.parse(`${appId}/docs:${collection}`);
 }
 
 /** REST document store under `/v1/docs`. */
