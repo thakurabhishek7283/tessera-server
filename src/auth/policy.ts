@@ -55,7 +55,8 @@ export function createAuthorizer(env: Env, db: Db): Authorizer {
       if (!parsed || !canAccessApp(user, parsed.appId)) return false;
       // Direct-message rooms are private to their two members.
       if (parsed.kind === 'chat' && parsed.id.startsWith('dm:')) {
-        return isDirectMember(user.id, parsed.id);
+        // Conversations are stored under an app-scoped key so ids never collide across apps.
+        return isDirectMember(user.id, `${parsed.appId}/${parsed.id}`);
       }
       // Live document changes leak content, so they follow the collection's read rule.
       if (parsed.kind === 'docs') return canRead(user, parsed.appId, parsed.id);

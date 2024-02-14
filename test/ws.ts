@@ -115,3 +115,35 @@ export async function connect(
 export function closeAll(...clients: WsClient[]): void {
   for (const c of clients) c.close();
 }
+
+export type Peer = WsClient & { peerId: string };
+
+/** The user id the server assigned (from the welcome frame). */
+export function userId(c: WsClient): string {
+  const welcome = c.frames.find((f) => f.t === 'welcome');
+  if (welcome?.t !== 'welcome') throw new Error('no welcome frame');
+  return welcome.user.id;
+}
+
+/** Joins a room and waits for the acknowledgement. */
+export async function joinRoom(c: WsClient, room: string): Promise<void> {
+  c.send({ t: 'join', id: `join:${room}`, room });
+  await c.waitFor((m) => m.t === 'joined' && m.id === `join:${room}`);
+}
+
+let requestCounter = 0;
+
+/** Sends a `req` on `room` and resolves with the matching `res` frame. */
+export async function request(
+  c: WsClient,
+  room: string,
+  topic: string,
+  data: unknown,
+): Promise<Extract<ServerMessage, { t: 'res' }>> {
+  const id = `req-${++requestCounter}`;
+  c.send({ t: 'req', id, room, topic, data });
+  return (await c.waitFor((m) => m.t === 'res' && m.id === id)) as Extract<
+    ServerMessage,
+    { t: 'res' }
+  >;
+}

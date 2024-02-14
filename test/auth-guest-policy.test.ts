@@ -83,11 +83,11 @@ describe('authorizer', () => {
     const db = openDatabase(':memory:');
     db.orm
       .insert(conversations)
-      .values({ id: 'dm:1', appId: 'shop', kind: 'direct', createdAt: 't', createdBy: 'u1' })
+      .values({ id: 'shop/dm:1', appId: 'shop', kind: 'direct', createdAt: 't', createdBy: 'u1' })
       .run();
     db.orm
       .insert(conversationMembers)
-      .values({ conversationId: 'dm:1', userId: 'u1', joinedAt: 't' })
+      .values({ conversationId: 'shop/dm:1', userId: 'u1', joinedAt: 't' })
       .run();
     const authz = createAuthorizer(testEnv(), db);
     expect(authz.canJoin(user({ id: 'u1' }), 'shop/chat:dm:1')).toBe(true);

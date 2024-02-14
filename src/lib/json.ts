@@ -39,3 +39,11 @@ export function decodeCursor(cursor: string | undefined): number {
   }
   throw new AppError('VALIDATION', 'Invalid cursor');
 }
+
+/**
+ * Narrows a value built from zod-inferred DTOs to `JsonValue`. zod models optional fields as
+ * `T | undefined`, which TypeScript refuses as JSON even though `JSON.stringify` drops them.
+ */
+export function asJson(value: unknown): JsonValue {
+  return value as JsonValue;
+}

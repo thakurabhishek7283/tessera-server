@@ -162,11 +162,11 @@ describe('join restrictions', () => {
     const aUser = (a.frames[0] as { user: { id: string } }).user.id;
     server.app.db.orm
       .insert(conversations)
-      .values({ id: 'dm:1', appId: 'shop', kind: 'direct', createdAt: 't', createdBy: aUser })
+      .values({ id: 'shop/dm:1', appId: 'shop', kind: 'direct', createdAt: 't', createdBy: aUser })
       .run();
     server.app.db.orm
       .insert(conversationMembers)
-      .values({ conversationId: 'dm:1', userId: aUser, joinedAt: 't' })
+      .values({ conversationId: 'shop/dm:1', userId: aUser, joinedAt: 't' })
       .run();
     expect(await join(a, 'shop/chat:dm:1')).toMatchObject({ peers: [] });
     expect(await failedJoin(b, 'shop/chat:dm:1')).toMatchObject({ error: { code: 'FORBIDDEN' } });
