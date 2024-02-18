@@ -8,13 +8,15 @@ import { AppError } from '../../lib/errors.js';
 import { asJson, jsonBytes } from '../../lib/json.js';
 import { uploadUrl } from '../uploads/url.js';
 import { ChatRepo, chatRoom, isDirectId } from './repo.js';
+import { ChatService } from './service.js';
 
 /** Rich message bodies are stored opaquely, so cap their serialised size. */
 const MAX_RICH_BYTES = 32 * 1024;
 
 /** Registers the `chat.*` request handlers on the hub. */
-export function registerChatHandlers(hub: Hub, env: Env): ChatRepo {
+export function registerChatHandlers(hub: Hub, env: Env): ChatService {
   const repo = new ChatRepo(hub.deps.db, hub.deps.clock, hub.deps.ids);
+  const service = new ChatService(repo, hub.deps.authorizer);
   const { handlers } = hub;
 
   const requireWrite = (ctx: HandlerContext): void => {
@@ -112,5 +114,9 @@ export function registerChatHandlers(hub: Hub, env: Env): ChatRepo {
     return message;
   });
 
-  return repo;
+  handlers.register('chat.history', (ctx, req) =>
+    service.history(ctx.user, ctx.appId, req.conversationId, req),
+  );
+
+  return service;
 }

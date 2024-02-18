@@ -1,4 +1,4 @@
-import { ChatHistoryRes } from '@tessera/protocol';
+import { ChatHistoryReq, ChatHistoryRes } from '@tessera/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { AppError } from '../src/lib/errors.js';
@@ -69,15 +69,15 @@ describe('req handler registry', () => {
   it('validates input with the protocol schema before the handler runs', async () => {
     const a = await setup();
     let called = false;
-    server.app.hub.handlers.register('chat.history', () => {
+    server.app.hub.handlers.define('test.paged', ChatHistoryReq, () => {
       called = true;
       return { messages: [], hasMore: false };
     });
-    const bad = await req(a, 'r1', 'chat.history', { conversationId: 'general', limit: 5000 });
+    const bad = await req(a, 'r1', 'test.paged', { conversationId: 'general', limit: 5000 });
     expect(bad).toMatchObject({ ok: false, error: { code: 'VALIDATION' } });
     expect(called).toBe(false);
 
-    const good = await req(a, 'r2', 'chat.history', { conversationId: 'general' });
+    const good = await req(a, 'r2', 'test.paged', { conversationId: 'general' });
     expect(good).toMatchObject({ ok: true });
     expect(ChatHistoryRes.parse((good as { data: unknown }).data)).toEqual({
       messages: [],
@@ -89,11 +89,11 @@ describe('req handler registry', () => {
   it('passes defaults from the schema to the handler', async () => {
     const a = await setup();
     let seen: unknown;
-    server.app.hub.handlers.register('chat.history', (_ctx, body) => {
+    server.app.hub.handlers.define('test.paged', ChatHistoryReq, (_ctx, body) => {
       seen = body;
       return { messages: [], hasMore: false };
     });
-    await req(a, 'r1', 'chat.history', { conversationId: 'general' });
+    await req(a, 'r1', 'test.paged', { conversationId: 'general' });
     expect(seen).toEqual({ conversationId: 'general', limit: 30 });
     a.close();
   });

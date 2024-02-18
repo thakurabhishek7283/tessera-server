@@ -20,6 +20,7 @@ import { AppEvents } from './lib/events.js';
 import { type Clock, createIds, type Ids, systemClock } from './lib/ids.js';
 import { parseQuery } from './lib/query.js';
 import { registerChatHandlers } from './modules/chat/handlers.js';
+import { chatRoutes } from './modules/chat/routes.js';
 import { docsRoutes } from './modules/docs/routes.js';
 import { healthRoutes } from './modules/health/routes.js';
 
@@ -141,7 +142,8 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   });
 
   const hub = await registerHub(app, opts.hub, opts.broker);
-  registerChatHandlers(hub, env);
+  const chat = registerChatHandlers(hub, env);
+  await app.register(chatRoutes(chat));
   await app.register(healthRoutes);
   await app.register(docsRoutes);
   if (env.authMode === 'dev') await app.register(guestRoutes);

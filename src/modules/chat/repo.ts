@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { AttachmentDto, ConversationDto, MessageBodyDto, MessageDto } from '@tessera/protocol';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, lt } from 'drizzle-orm';
 import type { Db } from '../../db/client.js';
 import { conversationMembers, conversations, messageReactions, messages } from '../../db/schema.js';
 import { AppError } from '../../lib/errors.js';
@@ -174,6 +174,38 @@ export class ChatRepo {
     };
     this.db.orm.insert(messages).values(row).run();
     return row;
+  }
+
+  /**
+   * One page of messages in chronological order. `before` pages towards older messages, `after`
+   * towards newer ones (reconnect gap-fill); with neither, the newest page is returned.
+   */
+  history(
+    key: string,
+    opts: { before?: string | undefined; after?: string | undefined; limit: number },
+  ): { messages: MessageDto[]; hasMore: boolean } {
+    const inConversation = eq(messages.conversationId, key);
+    const rows = opts.after
+      ? this.db.orm
+          .select()
+          .from(messages)
+          .where(and(inConversation, gt(messages.id, opts.after)))
+          .orderBy(asc(messages.id))
+          .limit(opts.limit + 1)
+          .all()
+      : this.db.orm
+          .select()
+          .from(messages)
+          .where(opts.before ? and(inConversation, lt(messages.id, opts.before)) : inConversation)
+          .orderBy(desc(messages.id))
+          .limit(opts.limit + 1)
+          .all();
+
+    const hasMore = rows.length > opts.limit;
+    const page = rows.slice(0, opts.limit);
+    if (!opts.after) page.reverse();
+    const reactions = this.reactionsFor(page.map((r) => r.id));
+    return { messages: page.map((r) => this.toMessage(r, reactions.get(r.id) ?? {})), hasMore };
   }
 
   /** `emoji → userIds` for each message id. */
