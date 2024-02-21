@@ -208,6 +208,46 @@ export class ChatRepo {
     return { messages: page.map((r) => this.toMessage(r, reactions.get(r.id) ?? {})), hasMore };
   }
 
+  updateBody(id: string, body: MessageBodyDto): MessageRow {
+    return this.db.orm
+      .update(messages)
+      .set({ body: JSON.stringify(body), editedAt: this.clock.now().toISOString() })
+      .where(eq(messages.id, id))
+      .returning()
+      .get() as MessageRow;
+  }
+
+  /** Clears content and attachments; the row stays so history keeps its place in the thread. */
+  softDelete(id: string): MessageRow {
+    return this.db.orm
+      .update(messages)
+      .set({
+        body: JSON.stringify(DELETED_BODY),
+        attachments: '[]',
+        deletedAt: this.clock.now().toISOString(),
+      })
+      .where(eq(messages.id, id))
+      .returning()
+      .get() as MessageRow;
+  }
+
+  /** Adds or removes a reaction; returns false when nothing changed (already in that state). */
+  setReaction(messageId: string, userId: string, emoji: string, on: boolean): boolean {
+    const key = and(
+      eq(messageReactions.messageId, messageId),
+      eq(messageReactions.userId, userId),
+      eq(messageReactions.emoji, emoji),
+    );
+    if (!on) return this.db.orm.delete(messageReactions).where(key).run().changes > 0;
+    return (
+      this.db.orm
+        .insert(messageReactions)
+        .values({ messageId, userId, emoji, createdAt: this.clock.now().toISOString() })
+        .onConflictDoNothing()
+        .run().changes > 0
+    );
+  }
+
   /** `emoji → userIds` for each message id. */
   reactionsFor(messageIds: string[]): Map<string, Record<string, string[]>> {
     const out = new Map<string, Record<string, string[]>>();

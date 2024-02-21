@@ -7,11 +7,14 @@ import type { Hub } from '../../hub/hub.js';
 import { AppError } from '../../lib/errors.js';
 import { asJson, jsonBytes } from '../../lib/json.js';
 import { uploadUrl } from '../uploads/url.js';
-import { ChatRepo, chatRoom, isDirectId } from './repo.js';
+import { ChatRepo, chatRoom, isDirectId, wireConversationId } from './repo.js';
 import { ChatService } from './service.js';
 
 /** Rich message bodies are stored opaquely, so cap their serialised size. */
 const MAX_RICH_BYTES = 32 * 1024;
+
+/** Bounds the reaction rows one message can accumulate. */
+const MAX_EMOJI_PER_MESSAGE = 20;
 
 /** Registers the `chat.*` request handlers on the hub. */
 export function registerChatHandlers(hub: Hub, env: Env): ChatService {
@@ -112,6 +115,81 @@ export function registerChatHandlers(hub: Hub, env: Env): ChatService {
     const message = repo.toMessage(row);
     hub.broadcast(chatRoom(ctx.appId, req.conversationId), 'chat.message', asJson(message));
     return message;
+  });
+
+  /** Loads a message the caller may see: same app, and a direct conversation they belong to. */
+  const accessibleMessage = (ctx: HandlerContext, messageId: string) => {
+    const row = repo.getMessage(messageId);
+    const id = row ? wireConversationId(row.conversationId) : '';
+    if (
+      !row ||
+      row.appId !== ctx.appId ||
+      (isDirectId(id) && !repo.isMember(ctx.appId, id, ctx.user.id))
+    ) {
+      throw new AppError('NOT_FOUND', 'Message does not exist');
+    }
+    return { row, room: chatRoom(ctx.appId, id) };
+  };
+
+  handlers.register('chat.edit', (ctx, req) => {
+    requireWrite(ctx);
+    const { row, room } = accessibleMessage(ctx, req.messageId);
+    if (row.authorId !== ctx.user.id)
+      throw new AppError('FORBIDDEN', 'Only the author can edit a message');
+    if (row.deletedAt) throw new AppError('NOT_FOUND', 'Message was deleted');
+    checkBody(req.body);
+
+    const message = repo.toMessage(repo.updateBody(row.id, req.body));
+    hub.broadcast(room, 'chat.message-updated', asJson(message));
+    return message;
+  });
+
+  handlers.register('chat.delete', (ctx, req) => {
+    requireWrite(ctx);
+    const { row, room } = accessibleMessage(ctx, req.messageId);
+    const moderator = ctx.user.roles?.includes('moderator') ?? false;
+    if (row.authorId !== ctx.user.id && !moderator) {
+      throw new AppError('FORBIDDEN', 'Only the author or a moderator can delete a message');
+    }
+    // Deleting twice is a no-op, so a retried request does not re-announce the tombstone.
+    if (row.deletedAt) return repo.toMessage(row);
+
+    const message = repo.toMessage(repo.softDelete(row.id));
+    hub.broadcast(room, 'chat.message-updated', asJson(message));
+    return message;
+  });
+
+  handlers.register('chat.react', (ctx, req) => {
+    requireWrite(ctx);
+    if (req.emoji.trim() === '') throw new AppError('VALIDATION', 'emoji must not be blank');
+    const { row, room } = accessibleMessage(ctx, req.messageId);
+    if (row.deletedAt) throw new AppError('NOT_FOUND', 'Message was deleted');
+
+    const existing = repo.reactionsFor([row.id]).get(row.id) ?? {};
+    if (
+      req.on &&
+      !(req.emoji in existing) &&
+      Object.keys(existing).length >= MAX_EMOJI_PER_MESSAGE
+    ) {
+      throw new AppError(
+        'VALIDATION',
+        `A message can have at most ${MAX_EMOJI_PER_MESSAGE} different reactions`,
+      );
+    }
+    if (repo.setReaction(row.id, ctx.user.id, req.emoji, req.on)) {
+      hub.broadcast(
+        room,
+        'chat.reaction',
+        asJson({
+          conversationId: wireConversationId(row.conversationId),
+          messageId: row.id,
+          emoji: req.emoji,
+          userId: ctx.user.id,
+          on: req.on,
+        }),
+      );
+    }
+    return { messageId: row.id, reactions: repo.reactionsFor([row.id]).get(row.id) ?? {} };
   });
 
   handlers.register('chat.history', (ctx, req) =>
