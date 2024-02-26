@@ -1,8 +1,14 @@
 import { createHash } from 'node:crypto';
 import type { AttachmentDto, ConversationDto, MessageBodyDto, MessageDto } from '@tessera/protocol';
-import { and, asc, desc, eq, gt, inArray, lt } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gt, inArray, isNull, lt, ne } from 'drizzle-orm';
 import type { Db } from '../../db/client.js';
-import { conversationMembers, conversations, messageReactions, messages } from '../../db/schema.js';
+import {
+  conversationMembers,
+  conversations,
+  messageReactions,
+  messages,
+  readMarkers,
+} from '../../db/schema.js';
 import { AppError } from '../../lib/errors.js';
 import type { Clock, Ids } from '../../lib/ids.js';
 import { parseStored } from '../../lib/json.js';
@@ -121,6 +127,116 @@ export class ChatRepo {
       .orderBy(conversationMembers.userId)
       .all()
       .map((r) => r.userId);
+  }
+
+  /** Everything the user can see in an app: its room conversations plus their own direct ones. */
+  listConversations(appId: string, userId: string): ConversationDto[] {
+    const rooms = this.db.orm
+      .select()
+      .from(conversations)
+      .where(and(eq(conversations.appId, appId), eq(conversations.kind, 'room')))
+      .all();
+    const directs = this.db.orm
+      .select({ c: conversations })
+      .from(conversations)
+      .innerJoin(conversationMembers, eq(conversationMembers.conversationId, conversations.id))
+      .where(
+        and(
+          eq(conversations.appId, appId),
+          eq(conversations.kind, 'direct'),
+          eq(conversationMembers.userId, userId),
+        ),
+      )
+      .all()
+      .map((r) => r.c);
+
+    return (
+      [...rooms, ...directs]
+        .map((row) => {
+          const last = this.lastMessage(row.id);
+          const dto = this.toConversation(row, {
+            ...(row.kind === 'direct'
+              ? { members: this.directMembers(appId, wireConversationId(row.id)) }
+              : {}),
+            ...(last ? { lastMessage: this.toMessage(last) } : {}),
+            unread: this.unreadCount(row.id, userId),
+          });
+          return { dto, lastId: last?.id, createdAt: row.createdAt };
+        })
+        // Most recently active first. Message ids are monotonic ULIDs, so they order activity
+        // exactly even within one millisecond; conversations with no messages come last.
+        .sort((a, b) => {
+          if (a.lastId && b.lastId) return a.lastId < b.lastId ? 1 : -1;
+          if (a.lastId || b.lastId) return a.lastId ? -1 : 1;
+          return a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0;
+        })
+        .map((x) => x.dto)
+    );
+  }
+
+  private lastMessage(key: string): MessageRow | undefined {
+    return this.db.orm
+      .select()
+      .from(messages)
+      .where(eq(messages.conversationId, key))
+      .orderBy(desc(messages.id))
+      .limit(1)
+      .get();
+  }
+
+  /** Messages from other people, newer than the user's read marker, that are not deleted. */
+  unreadCount(key: string, userId: string): number {
+    const marker = this.db.orm
+      .select({ messageId: readMarkers.messageId })
+      .from(readMarkers)
+      .where(and(eq(readMarkers.conversationId, key), eq(readMarkers.userId, userId)))
+      .get();
+    const row = this.db.orm
+      .select({ n: count() })
+      .from(messages)
+      .where(
+        and(
+          eq(messages.conversationId, key),
+          ne(messages.authorId, userId),
+          isNull(messages.deletedAt),
+          marker ? gt(messages.id, marker.messageId) : undefined,
+        ),
+      )
+      .get();
+    return row?.n ?? 0;
+  }
+
+  /**
+   * Moves the read marker forward. Markers never go backwards, so a late or reordered request
+   * cannot make already-read messages unread again. Returns the effective marker.
+   */
+  advanceMarker(
+    key: string,
+    userId: string,
+    messageId: string,
+  ): { messageId: string; advanced: boolean } {
+    return this.db.orm.transaction((tx) => {
+      const current = tx
+        .select()
+        .from(readMarkers)
+        .where(and(eq(readMarkers.conversationId, key), eq(readMarkers.userId, userId)))
+        .get();
+      if (current && current.messageId >= messageId)
+        return { messageId: current.messageId, advanced: false };
+      tx.insert(readMarkers)
+        .values({
+          conversationId: key,
+          userId,
+          messageId,
+          updatedAt: this.clock.now().toISOString(),
+        })
+        .onConflictDoUpdate({
+          target: [readMarkers.conversationId, readMarkers.userId],
+          set: { messageId, updatedAt: this.clock.now().toISOString() },
+        })
+        .run();
+      return { messageId, advanced: true };
+    });
   }
 
   // ---------- messages ----------

@@ -192,6 +192,37 @@ export function registerChatHandlers(hub: Hub, env: Env): ChatService {
     return { messageId: row.id, reactions: repo.reactionsFor([row.id]).get(row.id) ?? {} };
   });
 
+  handlers.register('chat.conversations', (ctx) => {
+    if (!ctx.authorizer.canRead(ctx.user, ctx.appId, 'chat')) {
+      throw new AppError('FORBIDDEN', 'Not allowed to read chat messages');
+    }
+    return { conversations: repo.listConversations(ctx.appId, ctx.user.id) };
+  });
+
+  handlers.register('chat.read', (ctx, req) => {
+    if (!ctx.authorizer.canRead(ctx.user, ctx.appId, 'chat')) {
+      throw new AppError('FORBIDDEN', 'Not allowed to read chat messages');
+    }
+    ChatRepo.assertConversationId(req.conversationId);
+    const { row } = accessibleMessage(ctx, req.messageId);
+    if (wireConversationId(row.conversationId) !== req.conversationId) {
+      throw new AppError('NOT_FOUND', 'Message does not exist in this conversation');
+    }
+    const marker = repo.advanceMarker(row.conversationId, ctx.user.id, req.messageId);
+    if (marker.advanced) {
+      hub.broadcast(
+        chatRoom(ctx.appId, req.conversationId),
+        'chat.read',
+        asJson({
+          conversationId: req.conversationId,
+          messageId: marker.messageId,
+          userId: ctx.user.id,
+        }),
+      );
+    }
+    return { conversationId: req.conversationId, messageId: marker.messageId };
+  });
+
   handlers.register('chat.history', (ctx, req) =>
     service.history(ctx.user, ctx.appId, req.conversationId, req),
   );
