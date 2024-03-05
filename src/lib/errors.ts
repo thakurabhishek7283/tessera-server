@@ -54,6 +54,24 @@ export function httpStatus(code: ErrorCode): number {
   return HTTP_STATUS[code] ?? 500;
 }
 
+/** Best error code for an HTTP status raised by Fastify or a plugin (not by our own code). */
+export function codeForStatus(status: number): ErrorCode {
+  switch (status) {
+    case 401:
+      return 'UNAUTHORIZED';
+    case 403:
+      return 'FORBIDDEN';
+    case 404:
+      return 'NOT_FOUND';
+    case 409:
+      return 'CONFLICT';
+    case 429:
+      return 'RATE_LIMITED';
+    default:
+      return 'VALIDATION';
+  }
+}
+
 /** Builds the `{code, message, details?}` object used by both REST envelopes and WS frames. */
 export function toWireError(code: ErrorCode, message: string, details?: JsonValue): WireError {
   return details === undefined ? { code, message } : { code, message, details };

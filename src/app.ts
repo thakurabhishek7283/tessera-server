@@ -15,7 +15,7 @@ import type { Env } from './env.js';
 import type { Broker } from './hub/broker.js';
 import type { HubOptions } from './hub/options.js';
 import { registerHub } from './hub/plugin.js';
-import { AppError, ConflictError, toWireError } from './lib/errors.js';
+import { AppError, ConflictError, codeForStatus, toWireError } from './lib/errors.js';
 import { AppEvents } from './lib/events.js';
 import { type Clock, createIds, type Ids, systemClock } from './lib/ids.js';
 import { parseQuery } from './lib/query.js';
@@ -23,6 +23,7 @@ import { registerChatHandlers } from './modules/chat/handlers.js';
 import { chatRoutes } from './modules/chat/routes.js';
 import { docsRoutes } from './modules/docs/routes.js';
 import { healthRoutes } from './modules/health/routes.js';
+import { uploadRoutes } from './modules/uploads/routes.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -127,7 +128,18 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
       });
     }
     // Fastify's own errors (bad JSON, payload too large, rate limit, …) carry a 4xx statusCode.
-    const { statusCode, message } = err as { statusCode?: number; message?: string };
+    const { statusCode, message, code } = err as {
+      statusCode?: number;
+      message?: string;
+      code?: string;
+    };
+    if (code === 'FST_REQ_FILE_TOO_LARGE') {
+      return reply.code(413).send({
+        error: toWireError('UPLOAD_TOO_LARGE', `File is larger than ${env.uploadMaxBytes} bytes`, {
+          maxBytes: env.uploadMaxBytes,
+        }),
+      });
+    }
     const status = typeof statusCode === 'number' ? statusCode : 500;
     if (status === 429) {
       return reply.code(429).send({ error: toWireError('RATE_LIMITED', 'Too many requests') });
@@ -135,7 +147,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
     if (status >= 400 && status < 500) {
       return reply
         .code(status)
-        .send({ error: toWireError('VALIDATION', message ?? 'Bad request') });
+        .send({ error: toWireError(codeForStatus(status), message ?? 'Bad request') });
     }
     req.log.error({ err }, 'unhandled error');
     return reply.code(500).send({ error: toWireError('UNKNOWN', 'Internal server error') });
@@ -146,6 +158,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   await app.register(chatRoutes(chat));
   await app.register(healthRoutes);
   await app.register(docsRoutes);
+  await app.register(uploadRoutes);
   if (env.authMode === 'dev') await app.register(guestRoutes);
 
   return app;
