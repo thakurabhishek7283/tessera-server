@@ -9,16 +9,9 @@ import { z } from 'zod';
 import { authenticate } from '../../auth/http.js';
 import { uploads } from '../../db/schema.js';
 import { AppError } from '../../lib/errors.js';
+import { sniffType } from './sniff.js';
 import { createDiskStorage } from './storage.js';
 import { uploadUrl } from './url.js';
-
-const EXTENSIONS: Record<string, string> = {
-  'image/png': 'png',
-  'image/jpeg': 'jpg',
-  'image/webp': 'webp',
-  'image/gif': 'gif',
-  'application/pdf': 'pdf',
-};
 
 /** True when `mime` matches an allowlist entry such as `image/png` or `image/*`. */
 export function isAllowed(mime: string, allowed: string[]): boolean {
@@ -67,7 +60,22 @@ export const uploadRoutes: FastifyPluginAsync = async (app) => {
         });
       }
 
-      const mime = part.mimetype;
+      const sniffed = await sniffType(data);
+      if (!sniffed) {
+        throw new AppError('VALIDATION', 'The file type could not be determined from its content');
+      }
+      const { mime, ext } = sniffed;
+      // A generic Content-Type is common; a specific one that disagrees with the bytes is a lie.
+      const claimed = part.mimetype;
+      if (claimed !== 'application/octet-stream' && claimed !== mime) {
+        throw new AppError(
+          'VALIDATION',
+          `Declared type "${claimed}" does not match the file content`,
+          {
+            detected: mime,
+          },
+        );
+      }
       if (!isAllowed(mime, env.uploadAllowed)) {
         throw new AppError('VALIDATION', `Files of type "${mime}" are not allowed`, {
           accept: env.uploadAllowed,
@@ -85,7 +93,7 @@ export const uploadRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const id = app.ids.ulid();
-      const path = `${id}.${EXTENSIONS[mime] ?? 'bin'}`;
+      const path = `${id}.${ext}`;
       await storage.save(path, data);
       app.db.orm
         .insert(uploads)

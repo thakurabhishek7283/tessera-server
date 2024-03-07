@@ -1,6 +1,10 @@
-import { Conversation, Message } from '@tessera/protocol';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { Conversation, Message, UploadRes } from '@tessera/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
 import { uploads } from '../src/db/schema.js';
+import { bearer, guest, multipartBody, PNG } from './helpers.js';
 import {
   closeAll,
   connect,
@@ -177,6 +181,38 @@ describe('chat.send', () => {
     expect(await send(a)).toMatchObject({ ok: false, error: { code: 'FORBIDDEN' } });
     (server.app.authorizer as { canWrite: unknown }).canWrite = original.canWrite;
     a.close();
+  });
+});
+
+describe('chat.send with a real upload', () => {
+  it('attaches a file stored through POST /v1/uploads', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'tessera-chat-'));
+    try {
+      server = await startTestServer({ UPLOAD_DIR: dir });
+      const { token } = await guest(server.app, 'Ada');
+      const { payload, headers } = multipartBody({
+        data: PNG,
+        filename: 'cat.png',
+        type: 'image/png',
+      });
+      const up = await server.app.inject({
+        method: 'POST',
+        url: '/v1/uploads/shop',
+        payload,
+        headers: { ...bearer(token), ...headers },
+      });
+      const upload = UploadRes.parse(up.json());
+
+      const a = await connect(server, { token });
+      await joinRoom(a, ROOM);
+      const res = await send(a, {
+        attachments: [{ id: upload.id, url: '', name: 'cat.png', mime: 'image/png', size: 1 }],
+      });
+      expect(Message.parse(res.data).attachments).toEqual([{ ...upload, name: 'cat.png' }]);
+      a.close();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

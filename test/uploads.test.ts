@@ -3,13 +3,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { UploadRes } from '@tessera/protocol';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { bearer, guest, testApp } from './helpers.js';
+import { bearer, type FileSpec, guest, multipartBody, PNG, testApp } from './helpers.js';
 
-/** A real 3x2 RGBA PNG. */
-const PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAYAAACddGYaAAAAEklEQVR4nGP8z8Dwn4EIwDiqEAAhNwEA3b0hxgAAAABJRU5ErkJggg==',
-  'base64',
-);
+const GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+const PDF = Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n');
 
 let app: Awaited<ReturnType<typeof testApp>>;
 let dir: string;
@@ -24,30 +21,6 @@ afterEach(async () => {
   await app.close();
   rmSync(dir, { recursive: true, force: true });
 });
-
-interface FileSpec {
-  data: Buffer | string;
-  filename?: string;
-  type?: string;
-  field?: string;
-}
-
-function multipartBody({
-  data,
-  filename = 'file.bin',
-  type = 'application/octet-stream',
-  field = 'file',
-}: FileSpec) {
-  const boundary = '----tessera-test';
-  const head = Buffer.from(
-    `--${boundary}\r\nContent-Disposition: form-data; name="${field}"; filename="${filename}"\r\nContent-Type: ${type}\r\n\r\n`,
-  );
-  const tail = Buffer.from(`\r\n--${boundary}--\r\n`);
-  return {
-    payload: Buffer.concat([head, Buffer.isBuffer(data) ? data : Buffer.from(data), tail]),
-    headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
-  };
-}
 
 const upload = (spec: FileSpec, headers: Record<string, string> = auth) => {
   const { payload, headers: mp } = multipartBody(spec);
@@ -79,13 +52,57 @@ describe('POST /v1/uploads/:appId', () => {
     expect(readdirSync(dir)).toEqual([`${body.id}.png`]);
   });
 
-  it('rejects types outside the allowlist', async () => {
-    const res = await upload({ data: 'hello', filename: 'a.txt', type: 'text/plain' });
+  it('rejects detected types outside the allowlist', async () => {
+    const narrow = await testApp({ UPLOAD_DIR: dir, UPLOAD_ALLOWED: 'application/pdf' });
+    const { payload, headers } = multipartBody({ data: PNG, type: 'image/png' });
+    const res = await narrow.inject({
+      method: 'POST',
+      url: '/v1/uploads/shop',
+      payload,
+      headers: { ...auth, ...headers },
+    });
     expect(res.statusCode).toBe(400);
     expect(res.json()).toMatchObject({
-      error: { code: 'VALIDATION', details: { accept: expect.any(Array) } },
+      error: { code: 'VALIDATION', details: { accept: ['application/pdf'] } },
     });
     expect(readdirSync(dir)).toEqual([]);
+    await narrow.close();
+  });
+
+  it('refuses content whose type cannot be detected, whatever the client claims', async () => {
+    const html = await upload({
+      data: '<script>alert(1)</script>',
+      filename: 'x.png',
+      type: 'image/png',
+    });
+    expect(html.statusCode).toBe(400);
+    const text = await upload({ data: 'hello', filename: 'a.txt', type: 'text/plain' });
+    expect(text.statusCode).toBe(400);
+    expect(readdirSync(dir)).toEqual([]);
+  });
+
+  it('rejects a declared type that contradicts the bytes (MIME spoofing)', async () => {
+    const res = await upload({ data: PNG, filename: 'doc.pdf', type: 'application/pdf' });
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toMatchObject({
+      error: { code: 'VALIDATION', details: { detected: 'image/png' } },
+    });
+    expect(readdirSync(dir)).toEqual([]);
+  });
+
+  it('uses the detected type when the client sends a generic one', async () => {
+    const res = await upload({ data: PNG, type: 'application/octet-stream' });
+    expect(UploadRes.parse(res.json())).toMatchObject({ mime: 'image/png' });
+  });
+
+  it('accepts GIF and PDF and names files after the detected extension', async () => {
+    const gif = UploadRes.parse((await upload({ data: GIF, type: 'image/gif' })).json());
+    expect(gif).toMatchObject({ mime: 'image/gif', width: 1, height: 1 });
+    expect(gif.url).toMatch(/\.gif$/);
+    const pdf = UploadRes.parse((await upload({ data: PDF, type: 'application/pdf' })).json());
+    expect(pdf).toMatchObject({ mime: 'application/pdf' });
+    expect(pdf.width).toBeUndefined();
+    expect(pdf.url).toMatch(/\.pdf$/);
   });
 
   it('rejects files over UPLOAD_MAX_BYTES with UPLOAD_TOO_LARGE', async () => {
@@ -152,6 +169,13 @@ describe('GET /uploads/:file', () => {
     const path = await store(PNG, 'image/png');
     const res = await app.inject({ method: 'GET', url: path, headers: {} });
     expect(res.statusCode).toBe(200);
+  });
+
+  it('serves PDFs as downloads rather than in-page documents', async () => {
+    const path = await store(PDF, 'application/pdf');
+    const res = await app.inject({ method: 'GET', url: path });
+    expect(res.headers['content-disposition']).toBe('attachment');
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
   });
 
   it('answers 404 for unknown files, directory listings and traversal', async () => {

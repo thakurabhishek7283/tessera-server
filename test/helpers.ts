@@ -22,3 +22,33 @@ export async function guest(app: App, name = 'Ada'): Promise<{ token: string; id
 export const bearer = (token: string): Record<string, string> => ({
   authorization: `Bearer ${token}`,
 });
+
+export interface FileSpec {
+  data: Buffer | string;
+  filename?: string;
+  type?: string;
+  field?: string;
+}
+
+export function multipartBody({
+  data,
+  filename = 'file.bin',
+  type = 'application/octet-stream',
+  field = 'file',
+}: FileSpec) {
+  const boundary = '----tessera-test';
+  const head = Buffer.from(
+    `--${boundary}\r\nContent-Disposition: form-data; name="${field}"; filename="${filename}"\r\nContent-Type: ${type}\r\n\r\n`,
+  );
+  const tail = Buffer.from(`\r\n--${boundary}--\r\n`);
+  return {
+    payload: Buffer.concat([head, Buffer.isBuffer(data) ? data : Buffer.from(data), tail]),
+    headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+  };
+}
+
+/** A real 3x2 RGBA PNG. */
+export const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAYAAACddGYaAAAAEklEQVR4nGP8z8Dwn4EIwDiqEAAhNwEA3b0hxgAAAABJRU5ErkJggg==',
+  'base64',
+);
