@@ -23,6 +23,7 @@ import { registerChatHandlers } from './modules/chat/handlers.js';
 import { chatRoutes } from './modules/chat/routes.js';
 import { docsRoutes } from './modules/docs/routes.js';
 import { healthRoutes } from './modules/health/routes.js';
+import { iceRoutes } from './modules/ice/routes.js';
 import { uploadRoutes } from './modules/uploads/routes.js';
 
 declare module 'fastify' {
@@ -159,6 +160,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   await app.register(healthRoutes);
   await app.register(docsRoutes);
   await app.register(uploadRoutes);
+  await app.register(iceRoutes);
   if (env.authMode === 'dev') await app.register(guestRoutes);
 
   return app;
