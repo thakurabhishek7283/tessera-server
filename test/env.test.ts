@@ -10,6 +10,7 @@ describe('parseEnv', () => {
       authMode: 'dev',
       callMaxParticipants: 6,
       rateLimitPerMinute: 300,
+      enableDocs: true,
       uploadMaxBytes: 5 * 1024 * 1024,
       turnTtlSeconds: 3600,
       stunUrls: ['stun:stun.l.google.com:19302'],
@@ -31,6 +32,11 @@ describe('parseEnv', () => {
     });
     expect(env.corsOrigins).toEqual(['http://a.test', 'http://b.test']);
     expect(env.uploadAllowed).toEqual(['image/png', 'application/pdf']);
+  });
+
+  it('can switch the API docs off', () => {
+    expect(parseEnv({ ENABLE_DOCS: 'false' }).enableDocs).toBe(false);
+    expect(() => parseEnv({ ENABLE_DOCS: 'maybe' })).toThrow(/ENABLE_DOCS/);
   });
 
   it('treats blank values as unset', () => {

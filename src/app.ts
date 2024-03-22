@@ -1,9 +1,12 @@
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import {
   hasZodFastifySchemaValidationErrors,
+  jsonSchemaTransform,
   serializerCompiler,
   validatorCompiler,
 } from 'fastify-type-provider-zod';
@@ -25,6 +28,7 @@ import { docsRoutes } from './modules/docs/routes.js';
 import { healthRoutes } from './modules/health/routes.js';
 import { iceRoutes } from './modules/ice/routes.js';
 import { uploadRoutes } from './modules/uploads/routes.js';
+import { VERSION } from './version.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -97,7 +101,31 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   );
   app.decorate('authorizer', opts.authorizer ?? createAuthorizer(env, db));
 
-  await app.register(helmet);
+  if (env.enableDocs) {
+    // Registered before the routes so every route's zod schema lands in the OpenAPI document.
+    await app.register(swagger, {
+      openapi: {
+        info: {
+          title: 'tessera-server',
+          version: VERSION,
+          description:
+            'REST API of the Tessera reference backend. Realtime features (rooms, presence, chat) ' +
+            'use the WebSocket protocol at `GET /v1/ws`, documented in the repository.',
+        },
+        components: {
+          securitySchemes: { bearer: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' } },
+        },
+        security: [{ bearer: [] }],
+      },
+      transform: jsonSchemaTransform,
+    });
+  }
+
+  // Helmet's default upgrades subresources to https, which breaks the docs UI when the server is
+  // reached over plain http (LAN, docker compose); TLS is the reverse proxy's job.
+  await app.register(helmet, {
+    contentSecurityPolicy: { directives: { 'upgrade-insecure-requests': null } },
+  });
   await app.register(cors, {
     origin: env.corsOrigins.includes('*') ? true : env.corsOrigins,
     methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
@@ -158,6 +186,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   const chat = registerChatHandlers(hub, env);
   await app.register(chatRoutes(chat));
   await app.register(healthRoutes);
+  if (env.enableDocs) await app.register(swaggerUi, { routePrefix: '/docs' });
   await app.register(docsRoutes);
   await app.register(uploadRoutes);
   await app.register(iceRoutes);
