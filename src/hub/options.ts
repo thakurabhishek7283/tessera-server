@@ -12,6 +12,8 @@ export interface HubOptions {
   /** Invalid frames tolerated per minute before the connection is closed with 4008. */
   maxInvalidFramesPerMinute: number;
   maxRoomsPerConnection: number;
+  /** After a server-initiated close, a peer that does not answer is terminated after this long. */
+  closeGraceMs: number;
   /** `chat.send` budget per user (shared across their connections). */
   chatSendBurst: number;
   chatSendPerSecond: number;
@@ -25,6 +27,7 @@ export const DEFAULT_HUB_OPTIONS: HubOptions = {
   bucketRefillPerSecond: 20,
   maxInvalidFramesPerMinute: 10,
   maxRoomsPerConnection: 50,
+  closeGraceMs: 2_000,
   chatSendBurst: 5,
   chatSendPerSecond: 5,
 };

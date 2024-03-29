@@ -35,6 +35,7 @@ export class Connection {
   private helloTimer: NodeJS.Timeout | undefined;
   private invalidFrames: number[] = [];
   private cleanedUp = false;
+  private forceClose: NodeJS.Timeout | undefined;
   private heartbeat: NodeJS.Timeout | undefined;
   private pongTimer: NodeJS.Timeout | undefined;
   private readonly bucket: TokenBucket;
@@ -53,7 +54,10 @@ export class Connection {
 
     socket.on('message', (data, isBinary) => this.onMessage(data, isBinary));
     socket.on('pong', () => this.onPong());
-    socket.on('close', () => this.onClosed());
+    socket.on('close', () => {
+      clearTimeout(this.forceClose);
+      this.onClosed();
+    });
     socket.on('error', (err) => this.log.debug({ err }, 'socket error'));
   }
 
@@ -69,6 +73,9 @@ export class Connection {
   close(code: number, reason: string): void {
     if (this.state === 'closed') return;
     this.socket.close(code, reason);
+    // A peer that never answers the close handshake must not keep resources (or shutdown) waiting.
+    this.forceClose = setTimeout(() => this.socket.terminate(), this.hub.options.closeGraceMs);
+    this.forceClose.unref();
     // Stop processing immediately instead of waiting for the close handshake to finish.
     this.onClosed();
   }

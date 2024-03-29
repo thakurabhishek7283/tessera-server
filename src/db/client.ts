@@ -36,5 +36,13 @@ export function openDatabase(path: string): Db {
 
   const orm = createOrm(sqlite);
   migrate(orm, { migrationsFolder: MIGRATIONS_FOLDER });
-  return { orm, sqlite, close: () => sqlite.close() };
+  return {
+    orm,
+    sqlite,
+    close: () => {
+      // Fold the write-ahead log into the main file so the data directory is self-contained.
+      if (path !== ':memory:') sqlite.pragma('wal_checkpoint(TRUNCATE)');
+      sqlite.close();
+    },
+  };
 }

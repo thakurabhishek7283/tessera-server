@@ -1,5 +1,5 @@
 import websocket from '@fastify/websocket';
-import { MAX_FRAME_BYTES } from '@tessera/protocol';
+import { CloseCode, MAX_FRAME_BYTES } from '@tessera/protocol';
 import type { FastifyInstance } from 'fastify';
 import type { Broker } from './broker.js';
 import { Hub } from './hub.js';
@@ -17,9 +17,6 @@ export async function registerHub(
   overrides: Partial<HubOptions> = {},
   broker?: Broker,
 ): Promise<Hub> {
-  // ws enforces maxPayload itself and closes with 1009 before our handler sees the frame.
-  await app.register(websocket, { options: { maxPayload: MAX_FRAME_BYTES } });
-
   const hub = new Hub(
     {
       verifier: app.verifier,
@@ -33,6 +30,15 @@ export async function registerHub(
     { ...DEFAULT_HUB_OPTIONS, ...overrides },
   );
   app.decorate('hub', hub);
+
+  // Registered before the websocket plugin's own preClose hook so clients get close code 1001
+  // ("going away") rather than the library's code-less close.
+  app.addHook('preClose', async () => {
+    hub.closeAll(CloseCode.GoingAway, 'server shutting down');
+  });
+
+  // ws enforces maxPayload itself and closes with 1009 before our handler sees the frame.
+  await app.register(websocket, { options: { maxPayload: MAX_FRAME_BYTES } });
 
   // REST writes tell room members to refetch: `<appId>/docs:<collection>` is what
   // `RestStorage.watch` joins on the client.

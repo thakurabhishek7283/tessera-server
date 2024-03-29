@@ -75,6 +75,11 @@ export class Hub {
     for (const name of [...conn.rooms]) this.leave(conn, name);
   }
 
+  /** Closes every connection (used on shutdown so clients see 1001 and reconnect elsewhere). */
+  closeAll(code: number, reason: string): void {
+    for (const conn of [...this.connections]) conn.close(code, reason);
+  }
+
   get connectionCount(): number {
     return this.connections.size;
   }
