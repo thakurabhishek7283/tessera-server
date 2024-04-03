@@ -1,0 +1,45 @@
+# docker compose up                    server only
+# docker compose --profile turn up     server + coturn (set TURN_URLS/TURN_SECRET in .env, see README)
+services:
+  server:
+    build: .
+    image: tessera-server:local
+    ports:
+      - "${PORT:-8787}:8787"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Inside the container the app always listens on 8787 and keeps its data in the volume.
+      PORT: "8787"
+      DATABASE_PATH: /data/tessera.db
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - tessera-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  turn:
+    profiles: ["turn"]
+    image: coturn/coturn:4.6
+    # Credentials are time-limited and derived from TURN_SECRET (coturn "use-auth-secret").
+    # Behind NAT also pass --external-ip=<public-ip>.
+    command: >
+      -n --log-file=stdout --no-cli --fingerprint
+      --realm=${TURN_REALM:-tessera}
+      --use-auth-secret --static-auth-secret=${TURN_SECRET:?set TURN_SECRET to use the turn profile}
+      --min-port=49160 --max-port=49200
+    ports:
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+      - "49160-49200:49160-49200/udp"
+    restart: unless-stopped
+
+volumes:
+  tessera-data:

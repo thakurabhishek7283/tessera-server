@@ -63,6 +63,9 @@ const Schema = z
     }
   });
 
+/** Every environment variable the server reads (kept in sync with `.env.example` by a test). */
+export const ENV_KEYS: string[] = Object.keys(Schema.shape);
+
 /** Names of the JWT claims the verifier reads user fields from. */
 export interface ClaimNames {
   userId: string;
