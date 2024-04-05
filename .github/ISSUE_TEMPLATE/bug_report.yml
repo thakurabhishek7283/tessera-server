@@ -1,0 +1,28 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect, and what did you get instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How can it be reproduced?
+      description: Requests or frames sent, configuration (without secrets), and the server log if relevant.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: From `GET /health`, or the Docker image tag.
+  - type: dropdown
+    id: auth
+    attributes:
+      label: AUTH_MODE
+      options: [dev, secret, jwks]
