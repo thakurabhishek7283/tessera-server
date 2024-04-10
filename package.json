@@ -45,6 +45,9 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.0",
+    "@tessera/core": "^0.1.0",
+    "@tessera/storage": "^0.1.0",
+    "@tessera/transport": "^0.1.0",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^22.20.5",
     "@types/ws": "^8.18.2",
@@ -55,7 +58,10 @@
   },
   "pnpm": {
     "overrides": {
-      "@tessera/protocol": "link:./external/tessera/packages/protocol"
+      "@tessera/protocol": "link:./external/tessera/packages/protocol",
+      "@tessera/core": "link:./external/tessera/packages/core",
+      "@tessera/transport": "link:./external/tessera/packages/transport",
+      "@tessera/storage": "link:./external/tessera/packages/storage"
     },
     "onlyBuiltDependencies": [
       "better-sqlite3",

@@ -8,6 +8,8 @@ import { testEnv } from './helpers.js';
 export interface TestServer {
   /** `ws://127.0.0.1:<port>/v1/ws` */
   url: string;
+  /** `http://127.0.0.1:<port>` */
+  httpUrl: string;
   app: Awaited<ReturnType<typeof buildApp>>;
   close(): Promise<void>;
 }
@@ -20,7 +22,12 @@ export async function startTestServer(
   const app = await buildApp({ env: testEnv(env), logger: false, ...extra });
   await app.listen({ port: 0, host: '127.0.0.1' });
   const { port } = app.server.address() as AddressInfo;
-  return { url: `ws://127.0.0.1:${port}/v1/ws`, app, close: () => app.close() };
+  return {
+    url: `ws://127.0.0.1:${port}/v1/ws`,
+    httpUrl: `http://127.0.0.1:${port}`,
+    app,
+    close: () => app.close(),
+  };
 }
 
 export interface WsClient {
