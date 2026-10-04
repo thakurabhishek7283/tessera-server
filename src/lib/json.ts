@@ -1,4 +1,4 @@
-import type { JsonValue } from '@tessera/protocol';
+import type { JsonValue } from '@tessera-kit/protocol';
 import { AppError } from './errors.js';
 
 /** Field names allowed in `where`/`orderBy`; keeps them safe to embed in a JSON path. */

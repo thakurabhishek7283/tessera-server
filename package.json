@@ -31,7 +31,7 @@
     "@fastify/swagger": "^9.9.1",
     "@fastify/swagger-ui": "^6.1.1",
     "@fastify/websocket": "^11.3.2",
-    "@tessera/protocol": "^0.1.0",
+    "@tessera-kit/protocol": "^0.1.0",
     "better-sqlite3": "^13.0.3",
     "drizzle-orm": "^0.45.3",
     "fastify": "^5.12.5",
@@ -45,9 +45,9 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.0",
-    "@tessera/core": "^0.1.0",
-    "@tessera/storage": "^0.1.0",
-    "@tessera/transport": "^0.1.0",
+    "@tessera-kit/core": "^0.1.0",
+    "@tessera-kit/storage": "^0.1.0",
+    "@tessera-kit/transport": "^0.1.0",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^22.20.5",
     "@types/ws": "^8.18.2",
@@ -58,10 +58,10 @@
   },
   "pnpm": {
     "overrides": {
-      "@tessera/protocol": "link:./external/tessera/packages/protocol",
-      "@tessera/core": "link:./external/tessera/packages/core",
-      "@tessera/transport": "link:./external/tessera/packages/transport",
-      "@tessera/storage": "link:./external/tessera/packages/storage"
+      "@tessera-kit/protocol": "link:./external/tessera/packages/protocol",
+      "@tessera-kit/core": "link:./external/tessera/packages/core",
+      "@tessera-kit/transport": "link:./external/tessera/packages/transport",
+      "@tessera-kit/storage": "link:./external/tessera/packages/storage"
     },
     "onlyBuiltDependencies": [
       "better-sqlite3",

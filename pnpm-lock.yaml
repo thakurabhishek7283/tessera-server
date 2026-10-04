@@ -5,10 +5,10 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@tessera/protocol': link:./external/tessera/packages/protocol
-  '@tessera/core': link:./external/tessera/packages/core
-  '@tessera/transport': link:./external/tessera/packages/transport
-  '@tessera/storage': link:./external/tessera/packages/storage
+  '@tessera-kit/protocol': link:./external/tessera/packages/protocol
+  '@tessera-kit/core': link:./external/tessera/packages/core
+  '@tessera-kit/transport': link:./external/tessera/packages/transport
+  '@tessera-kit/storage': link:./external/tessera/packages/storage
 
 importers:
 
@@ -38,7 +38,7 @@ importers:
       '@fastify/websocket':
         specifier: ^11.3.2
         version: 11.3.2
-      '@tessera/protocol':
+      '@tessera-kit/protocol':
         specifier: link:external/tessera/packages/protocol
         version: link:external/tessera/packages/protocol
       better-sqlite3:
@@ -75,13 +75,13 @@ importers:
       '@biomejs/biome':
         specifier: ^2.5.0
         version: 2.5.15
-      '@tessera/core':
+      '@tessera-kit/core':
         specifier: link:external/tessera/packages/core
         version: link:external/tessera/packages/core
-      '@tessera/storage':
+      '@tessera-kit/storage':
         specifier: link:external/tessera/packages/storage
         version: link:external/tessera/packages/storage
-      '@tessera/transport':
+      '@tessera-kit/transport':
         specifier: link:external/tessera/packages/transport
         version: link:external/tessera/packages/transport
       '@types/better-sqlite3':

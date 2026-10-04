@@ -1,4 +1,4 @@
-import type { AttachmentDto, MessageBodyDto } from '@tessera/protocol';
+import type { AttachmentDto, MessageBodyDto } from '@tessera-kit/protocol';
 import { and, eq } from 'drizzle-orm';
 import { uploads } from '../../db/schema.js';
 import type { Env } from '../../env.js';

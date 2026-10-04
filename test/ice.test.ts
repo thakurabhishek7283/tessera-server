@@ -1,5 +1,5 @@
 import { createHmac } from 'node:crypto';
-import { IceRes } from '@tessera/protocol';
+import { IceRes } from '@tessera-kit/protocol';
 import { SignJWT } from 'jose';
 import { afterEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';

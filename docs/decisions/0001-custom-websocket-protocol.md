@@ -12,7 +12,7 @@ with no server at all.
 ## Decision
 
 Use plain WebSocket with JSON frames. The frames are defined once, as zod schemas in
-`@tessera/protocol`, and both the server and the client transport validate every frame against them.
+`@tessera-kit/protocol`, and both the server and the client transport validate every frame against them.
 The vocabulary is small: `hello`, `join`, `leave`, `pub`, `direct`, `presence`, `req`, `ping` from the
 client; `welcome`, `joined`, `peer-join`, `peer-leave`, `presence`, `msg`, `res`, `error`, `pong` from
 the server.

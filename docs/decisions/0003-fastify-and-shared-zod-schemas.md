@@ -1,4 +1,4 @@
-# 3. Fastify, with request and response schemas shared through @tessera/protocol
+# 3. Fastify, with request and response schemas shared through @tessera-kit/protocol
 
 Status: accepted
 
@@ -10,7 +10,7 @@ OpenAPI document should not be written by hand.
 ## Decision
 
 Use Fastify 5 with `fastify-type-provider-zod`. Every route declares zod schemas for params, query,
-body and response, taken from `@tessera/protocol` wherever a client also uses them. The same
+body and response, taken from `@tessera-kit/protocol` wherever a client also uses them. The same
 schemas validate WebSocket frames and `req` payloads (`TopicSchemas`). `@fastify/swagger` derives
 the OpenAPI document from the route schemas.
 

@@ -1,4 +1,4 @@
-import { ChatReactionEvent, Message } from '@tessera/protocol';
+import { ChatReactionEvent, Message } from '@tessera-kit/protocol';
 import { SignJWT } from 'jose';
 import { afterEach, describe, expect, it } from 'vitest';
 import {

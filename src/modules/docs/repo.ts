@@ -1,4 +1,4 @@
-import type { JsonValue } from '@tessera/protocol';
+import type { JsonValue } from '@tessera-kit/protocol';
 import { and, asc, desc, eq, type SQL, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client.js';
 import { documents } from '../../db/schema.js';

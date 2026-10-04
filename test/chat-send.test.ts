@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Conversation, Message, UploadRes } from '@tessera/protocol';
+import { Conversation, Message, UploadRes } from '@tessera-kit/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
 import { uploads } from '../src/db/schema.js';
 import { bearer, guest, multipartBody, PNG } from './helpers.js';

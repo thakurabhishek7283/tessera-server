@@ -5,7 +5,7 @@ FROM node:22-bookworm-slim AS build
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 # Toolchain for better-sqlite3 (native, built from source when no prebuilt binary matches) and git
-# for fetching the @tessera/protocol dependency by tag.
+# for fetching the @tessera-kit/protocol dependency by tag.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates git python3 make g++ \
  && rm -rf /var/lib/apt/lists/* \
@@ -21,12 +21,12 @@ RUN pnpm install --frozen-lockfile
 COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 # The link: override only exists for local development, so after pruning dev dependencies the
-# link is replaced with a real copy of the built @tessera/protocol package.
+# link is replaced with a real copy of the built @tessera-kit/protocol package.
 RUN pnpm build \
  && pnpm prune --prod \
- && rm -rf node_modules/@tessera/protocol \
- && mkdir -p node_modules/@tessera/protocol \
- && cp -r external/tessera/packages/protocol/dist external/tessera/packages/protocol/package.json node_modules/@tessera/protocol/
+ && rm -rf node_modules/@tessera-kit/protocol \
+ && mkdir -p node_modules/@tessera-kit/protocol \
+ && cp -r external/tessera/packages/protocol/dist external/tessera/packages/protocol/package.json node_modules/@tessera-kit/protocol/
 
 # ---- runtime: only what is needed to run, as an unprivileged user ----
 FROM node:22-bookworm-slim AS runtime

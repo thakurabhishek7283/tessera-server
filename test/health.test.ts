@@ -1,4 +1,4 @@
-import { HealthRes } from '@tessera/protocol';
+import { HealthRes } from '@tessera-kit/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
 import { VERSION } from '../src/version.js';
 import { testApp } from './helpers.js';

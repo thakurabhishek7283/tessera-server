@@ -1,4 +1,4 @@
-import { GuestAuthBody, GuestAuthRes } from '@tessera/protocol';
+import { GuestAuthBody, GuestAuthRes } from '@tessera-kit/protocol';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { SignJWT } from 'jose';

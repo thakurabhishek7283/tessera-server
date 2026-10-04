@@ -5,7 +5,7 @@ import {
   DocPutBody,
   PageDto,
   whereCandidates,
-} from '@tessera/protocol';
+} from '@tessera-kit/protocol';
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';

@@ -1,4 +1,4 @@
-import { type RequestTopic, type TopicResponse, TopicSchemas } from '@tessera/protocol';
+import { type RequestTopic, type TopicResponse, TopicSchemas } from '@tessera-kit/protocol';
 import type { FastifyBaseLogger } from 'fastify';
 import type { z } from 'zod';
 import type { Authorizer, AuthUser } from '../auth/index.js';
@@ -28,13 +28,13 @@ type Definition = {
 };
 
 /**
- * `req` topic → handler. Requests are validated with the zod schema from `@tessera/protocol`
+ * `req` topic → handler. Requests are validated with the zod schema from `@tessera-kit/protocol`
  * before the handler runs, so handlers only ever see well-formed input.
  */
 export class HandlerRegistry {
   private readonly definitions = new Map<string, Definition>();
 
-  /** Registers a handler for a topic defined in `@tessera/protocol`. */
+  /** Registers a handler for a topic defined in `@tessera-kit/protocol`. */
   register<T extends RequestTopic>(
     topic: T,
     fn: (

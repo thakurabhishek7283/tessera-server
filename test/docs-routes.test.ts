@@ -1,4 +1,4 @@
-import { DocDto, PageDto } from '@tessera/protocol';
+import { DocDto, PageDto } from '@tessera-kit/protocol';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { DocChange } from '../src/lib/events.js';
 import { bearer, guest, testApp } from './helpers.js';

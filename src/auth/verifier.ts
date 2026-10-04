@@ -1,4 +1,4 @@
-import { UserInfoSchema } from '@tessera/protocol';
+import { UserInfoSchema } from '@tessera-kit/protocol';
 import { type JWTPayload, type JWTVerifyGetKey, type JWTVerifyOptions, jwtVerify } from 'jose';
 import type { z } from 'zod';
 import type { ClaimNames, Env } from '../env.js';

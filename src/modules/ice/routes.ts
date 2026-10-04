@@ -1,5 +1,5 @@
 import { createHmac } from 'node:crypto';
-import { IceRes } from '@tessera/protocol';
+import { IceRes } from '@tessera-kit/protocol';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { authenticate } from '../../auth/http.js';

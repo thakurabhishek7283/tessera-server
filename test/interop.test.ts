@@ -10,10 +10,10 @@ import {
   type DocChange,
   systemClock,
   type Transport,
-} from '@tessera/core';
-import type { MessageDto } from '@tessera/protocol';
-import { createRestStorage, createRestUploads } from '@tessera/storage';
-import { createWebSocketTransport } from '@tessera/transport';
+} from '@tessera-kit/core';
+import type { MessageDto } from '@tessera-kit/protocol';
+import { createRestStorage, createRestUploads } from '@tessera-kit/storage';
+import { createWebSocketTransport } from '@tessera-kit/transport';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { bearer, guest, PNG } from './helpers.js';
 import { startTestServer, type TestServer } from './ws.js';

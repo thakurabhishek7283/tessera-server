@@ -1,5 +1,5 @@
 import websocket from '@fastify/websocket';
-import { CloseCode, MAX_FRAME_BYTES } from '@tessera/protocol';
+import { CloseCode, MAX_FRAME_BYTES } from '@tessera-kit/protocol';
 import type { FastifyInstance } from 'fastify';
 import type { Broker } from './broker.js';
 import { Hub } from './hub.js';

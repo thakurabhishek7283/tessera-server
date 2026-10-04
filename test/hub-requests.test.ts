@@ -1,4 +1,4 @@
-import { ChatHistoryReq, ChatHistoryRes } from '@tessera/protocol';
+import { ChatHistoryReq, ChatHistoryRes } from '@tessera-kit/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { AppError } from '../src/lib/errors.js';

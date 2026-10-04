@@ -27,7 +27,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: pnpm
-      # Clones and builds the tessera repo (@tessera/protocol) at the ref pinned in deps.json.
+      # Clones and builds the tessera repo (@tessera-kit/protocol) at the ref pinned in deps.json.
       - run: node scripts/fetch-deps.mjs --ci
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint

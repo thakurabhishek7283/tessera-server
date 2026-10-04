@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Makes the sibling Tessera repos available under external/ so `@tessera/*` packages resolve
+// Makes the sibling Tessera repos available under external/ so `@tessera-kit/*` packages resolve
 // through the `link:` overrides in package.json before they are published to npm.
 //
 //   node scripts/fetch-deps.mjs            local dev: symlink ../<name> when it exists
@@ -41,7 +41,7 @@ for (const [name, dep] of Object.entries(deps)) {
     run('pnpm', ['--dir', target, 'install', '--frozen-lockfile']);
     for (const pkg of dep.packages) {
       // "..." also builds the workspace packages the selected one depends on.
-      run('pnpm', ['--dir', target, '--filter', `@tessera/${pkg}...`, 'build']);
+      run('pnpm', ['--dir', target, '--filter', `@tessera-kit/${pkg}...`, 'build']);
     }
     built = true;
   }

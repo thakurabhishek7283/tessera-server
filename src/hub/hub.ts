@@ -4,7 +4,7 @@ import {
   MAX_PRESENCE_BYTES,
   type ServerMessage,
   type WirePeer,
-} from '@tessera/protocol';
+} from '@tessera-kit/protocol';
 import type { FastifyBaseLogger } from 'fastify';
 import type { WebSocket } from 'ws';
 import { type Authorizer, publicUser, type TokenVerifier } from '../auth/index.js';

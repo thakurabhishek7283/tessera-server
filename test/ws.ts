@@ -1,5 +1,5 @@
 import type { AddressInfo } from 'node:net';
-import type { ClientMessage, ServerMessage } from '@tessera/protocol';
+import type { ClientMessage, ServerMessage } from '@tessera-kit/protocol';
 import { WebSocket } from 'ws';
 import type { BuildAppOptions } from '../src/app.js';
 import { buildApp } from '../src/app.js';

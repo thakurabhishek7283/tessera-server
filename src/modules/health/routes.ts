@@ -1,4 +1,4 @@
-import { HealthRes } from '@tessera/protocol';
+import { HealthRes } from '@tessera-kit/protocol';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { VERSION } from '../../version.js';

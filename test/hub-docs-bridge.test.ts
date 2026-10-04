@@ -1,4 +1,4 @@
-import { DocChangedEvent } from '@tessera/protocol';
+import { DocChangedEvent } from '@tessera-kit/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
 import { InMemoryBroker } from '../src/hub/broker.js';
 import { bearer, guest } from './helpers.js';

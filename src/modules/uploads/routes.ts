@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
-import { UploadRes } from '@tessera/protocol';
+import { UploadRes } from '@tessera-kit/protocol';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { imageSize } from 'image-size';

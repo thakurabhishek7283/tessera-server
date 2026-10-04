@@ -1,6 +1,6 @@
-import type { ERROR_CODES, JsonValue, WireError } from '@tessera/protocol';
+import type { ERROR_CODES, JsonValue, WireError } from '@tessera-kit/protocol';
 
-/** Machine-readable error codes shared with clients (`@tessera/protocol`). */
+/** Machine-readable error codes shared with clients (`@tessera-kit/protocol`). */
 export type ErrorCode = (typeof ERROR_CODES)[number];
 
 const HTTP_STATUS: Partial<Record<ErrorCode, number>> = {

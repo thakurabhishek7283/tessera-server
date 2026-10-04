@@ -7,7 +7,7 @@ import {
   MAX_FRAME_BYTES,
   type ServerMessage,
   type WireError,
-} from '@tessera/protocol';
+} from '@tessera-kit/protocol';
 import type { FastifyBaseLogger } from 'fastify';
 import type { RawData, WebSocket } from 'ws';
 import { type AuthUser, publicUser } from '../auth/index.js';

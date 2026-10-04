@@ -1,4 +1,4 @@
-import type { ServerMessage } from '@tessera/protocol';
+import type { ServerMessage } from '@tessera-kit/protocol';
 import type { Unsubscribe } from '../lib/events.js';
 
 /** Receives a frame published to a room, plus the peer that must not get it back (the sender). */

@@ -1,4 +1,4 @@
-import { ChatHistoryRes } from '@tessera/protocol';
+import { ChatHistoryRes } from '@tessera-kit/protocol';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';

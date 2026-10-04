@@ -1,4 +1,4 @@
-import { ChatConversationsRes } from '@tessera/protocol';
+import { ChatConversationsRes } from '@tessera-kit/protocol';
 import { SignJWT } from 'jose';
 import { afterEach, describe, expect, it } from 'vitest';
 import {

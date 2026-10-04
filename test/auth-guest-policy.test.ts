@@ -1,4 +1,4 @@
-import { GuestAuthRes } from '@tessera/protocol';
+import { GuestAuthRes } from '@tessera-kit/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createAuthorizer, parseRoom } from '../src/auth/policy.js';
 import type { AuthUser } from '../src/auth/verifier.js';

@@ -1,4 +1,4 @@
-import { ChatHistoryRes } from '@tessera/protocol';
+import { ChatHistoryRes } from '@tessera-kit/protocol';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { messageReactions } from '../src/db/schema.js';
 import { bearer, guest } from './helpers.js';

@@ -42,7 +42,7 @@ Data (SQLite database and uploads) lives in the `tessera-data` volume. Copy [`.e
 Needs Node 22+, pnpm 10 and git.
 
 ```bash
-pnpm deps      # clones and builds @tessera/protocol into ./external
+pnpm deps      # clones and builds @tessera-kit/protocol into ./external
 pnpm install
 pnpm dev       # http://localhost:8787, docs at /docs
 ```
@@ -89,9 +89,9 @@ ws.onmessage = ({ data }) => {
 Point the core adapters at the server. The `appId` you give the kits is the namespace on the server.
 
 ```js
-import { createTessera } from '@tessera/core';
-import { createStorage, createUploads } from '@tessera/storage';
-import { createTransport } from '@tessera/transport';
+import { createTessera } from '@tessera-kit/core';
+import { createStorage, createUploads } from '@tessera-kit/storage';
+import { createTransport } from '@tessera-kit/transport';
 
 const tessera = createTessera(
   {
@@ -153,7 +153,7 @@ The `turn` profile runs coturn with `use-auth-secret`, so credentials from `/v1/
 
 ## HTTP API
 
-Everything is JSON under `/v1`; errors always look like `{ "error": { "code", "message", "details?" } }`. Request and response schemas are the zod definitions in [`@tessera/protocol`](https://github.com/thakurabhishek7283/tessera/tree/main/packages/protocol), and `/docs` is generated from them.
+Everything is JSON under `/v1`; errors always look like `{ "error": { "code", "message", "details?" } }`. Request and response schemas are the zod definitions in [`@tessera-kit/protocol`](https://github.com/thakurabhishek7283/tessera/tree/main/packages/protocol), and `/docs` is generated from them.
 
 | Method and path | Auth | Description |
 | --- | --- | --- |
@@ -172,7 +172,7 @@ Notes on the document store: `where` compares top-level fields for equality (`wh
 
 ## WebSocket protocol
 
-`GET /v1/ws`. Frames are JSON text, at most 64 KiB, validated on both sides with the schemas in `@tessera/protocol`. Room names are `<appId>/<kind>:<id>`; a connection can only join rooms of the `appId` it said hello with.
+`GET /v1/ws`. Frames are JSON text, at most 64 KiB, validated on both sides with the schemas in `@tessera-kit/protocol`. Room names are `<appId>/<kind>:<id>`; a connection can only join rooms of the `appId` it said hello with.
 
 | Client sends | Server answers or sends |
 | --- | --- |
@@ -306,13 +306,13 @@ REST routes and the hub share one process, one database and one authorizer. Writ
 ## Development
 
 ```bash
-pnpm deps       # clone and build @tessera/protocol (links ../tessera if it exists)
+pnpm deps       # clone and build @tessera-kit/protocol (links ../tessera if it exists)
 pnpm install
 pnpm dev        # reload on change
 pnpm check      # lint, typecheck, tests, build: the same as CI
 ```
 
-Tests run against in-memory SQLite and a real WebSocket server. `test/interop.test.ts` also drives the real `@tessera/transport` and `@tessera/storage` clients against the server. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Tests run against in-memory SQLite and a real WebSocket server. `test/interop.test.ts` also drives the real `@tessera-kit/transport` and `@tessera-kit/storage` clients against the server. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Roadmap
 

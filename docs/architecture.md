@@ -88,7 +88,7 @@ frames are the one exception after the handshake: they run without blocking the 
 handler does not delay pings or presence updates.
 
 Every frame is size-checked, taken from a per-connection token bucket, parsed and validated with
-`ClientMsg` from `@tessera/protocol` before anything else sees it. Ten invalid frames in a minute
+`ClientMsg` from `@tessera-kit/protocol` before anything else sees it. Ten invalid frames in a minute
 close the connection with 4008. The server pings with ws control frames and terminates peers that
 do not answer.
 
@@ -202,7 +202,7 @@ Vitest, with the app built through `buildApp` and an in-memory database:
 - Hub and chat through a real `ws` client on an ephemeral port (`test/ws.ts`), including heartbeat,
   rate limits, shutdown and close codes.
 - JWKS with a local HTTP key server; ICE credentials against an independent HMAC vector.
-- `test/interop.test.ts` runs the real `@tessera/transport` and `@tessera/storage` clients against
+- `test/interop.test.ts` runs the real `@tessera-kit/transport` and `@tessera-kit/storage` clients against
   the server, so protocol drift shows up here first.
 - Time and ids are injectable (`Clock`, `Ids`) where determinism matters.
 
