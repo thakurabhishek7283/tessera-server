@@ -1,6 +1,6 @@
 import { type RequestTopic, type TopicResponse, TopicSchemas } from '@tessera-kit/protocol';
 import type { FastifyBaseLogger } from 'fastify';
-import type { z } from 'zod';
+import { z } from 'zod';
 import type { Authorizer, AuthUser } from '../auth/index.js';
 import type { Db } from '../db/client.js';
 import { AppError } from '../lib/errors.js';
@@ -23,7 +23,8 @@ export interface HandlerContext {
 }
 
 type Definition = {
-  schema: z.ZodType;
+  // Any zod 4 schema: protocol schemas are zod/mini, host-specific ones may be classic.
+  schema: z.core.$ZodType;
   fn: (ctx: HandlerContext, req: never) => unknown;
 };
 
@@ -44,13 +45,13 @@ export class HandlerRegistry {
   ): void {
     this.define(
       topic,
-      TopicSchemas[topic].request as z.ZodType,
+      TopicSchemas[topic].request as z.core.$ZodType,
       fn as (ctx: HandlerContext, req: unknown) => unknown,
     );
   }
 
   /** Registers a handler with its own request schema (host-specific topics). */
-  define<S extends z.ZodType>(
+  define<S extends z.core.$ZodType>(
     topic: string,
     schema: S,
     fn: (ctx: HandlerContext, req: z.output<S>) => unknown,
@@ -72,7 +73,7 @@ export class HandlerRegistry {
   async handle(topic: string, ctx: HandlerContext, data: unknown): Promise<unknown> {
     const def = this.definitions.get(topic);
     if (!def) throw new AppError('NOT_FOUND', `Unknown request topic "${topic}"`);
-    const parsed = def.schema.safeParse(data);
+    const parsed = z.safeParse(def.schema, data);
     if (!parsed.success) {
       throw new AppError('VALIDATION', 'Invalid request', {
         issues: parsed.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),

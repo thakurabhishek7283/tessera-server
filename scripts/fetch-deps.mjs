@@ -40,8 +40,9 @@ for (const [name, dep] of Object.entries(deps)) {
   if (build) {
     run('pnpm', ['--dir', target, 'install', '--frozen-lockfile']);
     for (const pkg of dep.packages) {
-      // "..." also builds the workspace packages the selected one depends on.
-      run('pnpm', ['--dir', target, '--filter', `@tessera-kit/${pkg}...`, 'build']);
+      // By directory, so it works whatever the packages are called at the pinned ref; "..." also
+      // builds the workspace packages the selected one depends on.
+      run('pnpm', ['--filter', `{./packages/${pkg}}...`, 'build'], target);
     }
     built = true;
   }
