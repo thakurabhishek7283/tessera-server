@@ -14,8 +14,10 @@ import type { AuthUser } from '../../auth/verifier.js';
 import { AppError } from '../../lib/errors.js';
 import { DocsRepo } from './repo.js';
 
-const ItemParams = DocParams.extend({ id: z.string().min(1).max(200) });
-const CollectionParams = DocParams.omit({ id: true });
+// Built from the shape rather than with .extend()/.omit(), which zod/mini schemas don't have.
+const { appId, collection } = DocParams.shape;
+const ItemParams = z.object({ appId, collection, id: z.string().min(1).max(200) });
+const CollectionParams = z.object({ appId, collection });
 const DeleteRes = z.object({ id: z.string(), version: z.number().int().positive() });
 
 /** Parses `If-Match: 3` or `If-Match: "3"` (ETag style). Absent header means "no precondition". */
