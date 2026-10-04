@@ -1,5 +1,10 @@
 import { createHash } from 'node:crypto';
-import type { AttachmentDto, ConversationDto, MessageBodyDto, MessageDto } from '@tessera-kit/protocol';
+import type {
+  AttachmentDto,
+  ConversationDto,
+  MessageBodyDto,
+  MessageDto,
+} from '@tessera-kit/protocol';
 import { and, asc, count, desc, eq, gt, inArray, isNull, lt, ne } from 'drizzle-orm';
 import type { Db } from '../../db/client.js';
 import {
