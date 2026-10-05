@@ -27,6 +27,10 @@ cloning, so protocol changes show up immediately (rebuild it with `pnpm build` o
 - **Database changes**: edit `src/db/schema.ts`, then `pnpm db:generate` to create the migration
   and commit the generated SQL.
 
+## Releases
+
+To release, bump `version` in `package.json` in a pull request. After it's merged and CI passes, the Tag release workflow tags that commit `v<version>` (with `scripts/release-tags.mjs`, shared with the tessera repositories). Don't create release tags by hand.
+
 ## Layout
 
 See [docs/architecture.md](docs/architecture.md) for how the hub, modules and storage fit together.
