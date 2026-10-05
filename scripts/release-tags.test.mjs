@@ -8,22 +8,20 @@ import { planTags, releasablePackages, versionCommit } from './release-tags.mjs'
 const script = new URL('./release-tags.mjs', import.meta.url).pathname;
 const repos = [];
 
+// CI runners have no git identity, and commits and annotated tags need one.
+const env = {
+  ...process.env,
+  GIT_AUTHOR_NAME: 'Test',
+  GIT_AUTHOR_EMAIL: 'test@example.com',
+  GIT_COMMITTER_NAME: 'Test',
+  GIT_COMMITTER_EMAIL: 'test@example.com',
+};
+
 /** A throwaway git repository with a commit helper. */
 function repo() {
   const dir = mkdtempSync(join(tmpdir(), 'release-tags-'));
   repos.push(dir);
-  const git = (...args) =>
-    execFileSync('git', args, {
-      cwd: dir,
-      encoding: 'utf8',
-      env: {
-        ...process.env,
-        GIT_AUTHOR_NAME: 'Test',
-        GIT_AUTHOR_EMAIL: 'test@example.com',
-        GIT_COMMITTER_NAME: 'Test',
-        GIT_COMMITTER_EMAIL: 'test@example.com',
-      },
-    }).trim();
+  const git = (...args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8', env }).trim();
   git('init', '--quiet', '--initial-branch=main');
   const write = (path, data) => {
     mkdirSync(join(dir, path, '..'), { recursive: true });
@@ -120,6 +118,7 @@ describe('the command', () => {
     execFileSync('node', [join(dir, 'scripts/release-tags.mjs'), ...args], {
       cwd: dir,
       encoding: 'utf8',
+      env,
     });
 
   it('creates annotated tags, and is a no-op the second time', () => {
