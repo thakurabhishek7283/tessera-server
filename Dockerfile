@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- build: compile TypeScript and assemble a production node_modules ----
-FROM node:22-bookworm-slim AS build
+FROM node:25-bookworm-slim AS build
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 # Toolchain for better-sqlite3 (native, built from source when no prebuilt binary matches) and git
@@ -29,7 +29,7 @@ RUN pnpm build \
  && cp -r external/tessera/packages/protocol/dist external/tessera/packages/protocol/package.json node_modules/@tessera-kit/protocol/
 
 # ---- runtime: only what is needed to run, as an unprivileged user ----
-FROM node:22-bookworm-slim AS runtime
+FROM node:25-bookworm-slim AS runtime
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=8787 \
